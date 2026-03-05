@@ -66,7 +66,7 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
                 else if (VKCode == VK_SPACE) {}
 
                 bool32 altKeyWasDown = (lParam & (1 << 29)) != 0;
-                if (altKeyWasDown && (VKCode == VK_F4)) { globalRunning = false; }
+                if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
             }
         }break;
 
@@ -86,15 +86,15 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
     (void)cmdLine;
     (void)cmdShow;
 
-    WNDCLASS windowClass = {
+    WNDCLASSA windowClass = {
         .style = CS_VREDRAW | CS_HREDRAW,
         .lpfnWndProc = win32_mainWindowCallback,
         .hInstance = instance,
-        .lpszClassName = L"G.R.E"
+        .lpszClassName = "G.R.E"
     };
 
-    if(RegisterClass(&windowClass)){
-        HWND window = CreateWindowEx(0, windowClass.lpszClassName, L"G.R.E", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+    if(RegisterClassA(&windowClass)){
+        HWND window = CreateWindowExA(0, windowClass.lpszClassName, "G.R.E", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                                      CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                                      CW_USEDEFAULT, 0, 0, instance, 0);
         if(window){
