@@ -1,28 +1,98 @@
 #include <stdio.h>
 #include <Windows.h>
 #include <stdint.h>
+#include "mstd/mstd.c"
+
 
 #pragma comment(lib, "User32")
 #pragma comment(lib, "gdi32")
 
 
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
+// ======== struct ==========
+struct Win32_window_dimension {
+    int width;
+    int height;
+};
 
-typedef int32_t bool32;
-
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-
-// global_variables
+struct Win32_offscrean_buffer {
+    BITMAPINFO info;													// This is you telling Windows the "Rules" of your DIB
+    void* memory;														// A raw pointer for you to touch the pixels directly
+    int width;
+    int height;
+    int bytesPerPixel = 4;
+    int pitch;															// gap between tow rows
+};
+// ==========================
+// ======= global_variables ========
 
 bool globalRunning = false;
+static Win32_offscrean_buffer globalBackBuffer;
+//==================================
 
-//======
+
+static Win32_window_dimension win32_getWindowDimensions(HWND window) {
+    Win32_window_dimension dimension;
+
+    RECT clientRect;
+    GetClientRect(window, &clientRect);						// area in window where you can draw
+    dimension.width = clientRect.right - clientRect.left;
+    dimension.height = clientRect.bottom - clientRect.top;
+    return dimension;
+}
+
+static void win32_updateWindow(HDC deviceContext, int width, int height, Win32_offscrean_buffer* buffer) {
+
+    StretchDIBits(deviceContext,
+        0, 0, width, height,					// destination where we are bliting
+        0, 0, buffer->width, buffer->height,	// source from where we are bliting
+        buffer->memory, &buffer->info,
+        DIB_RGB_COLORS, SRCCOPY);    			// SRCCOPY: what bitwise operation we want to do, we just want to copy
+}
+
+static void win32_resizeDIBSection(Win32_offscrean_buffer* buffer, int width, int height) {					// DIB: device independent buffer->
+
+
+    if (buffer->memory) {
+        VirtualFree(buffer->memory, 0, MEM_RELEASE);
+    }
+
+    buffer->width = width;
+    buffer->height = height;
+
+    buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);	// specifing the rules
+    buffer->info.bmiHeader.biWidth = buffer->width;						// ...
+    buffer->info.bmiHeader.biHeight = -buffer->height;					// ...
+    buffer->info.bmiHeader.biPlanes = 1;									// ...
+    buffer->info.bmiHeader.biBitCount = 32;								// 4 bytes = 3(rgb) + 1(padding: for proper aligment) : size of each pixle
+    buffer->info.bmiHeader.biCompression = BI_RGB;						    // ...
+
+    int bitMapmemorySize = (width * height) * buffer->bytesPerPixel;
+    buffer->memory = VirtualAlloc(0, bitMapmemorySize, MEM_COMMIT, PAGE_READWRITE);
+    buffer->pitch = width * buffer->bytesPerPixel;
+}
+
+static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOffset, int greenOffset) {
+
+    u8* row = (u8*)buffer->memory;
+    for (int y = 0; y < buffer->height; ++y) {
+        u32* pixle = (u32*)row;
+        for (int x = 0; x < buffer->width; ++x) {
+            /*
+                memory: little endian ( LSB first )
+                memory   : BB GG RR xx
+                registor : xx RR GG BB
+            */
+
+            u8 blue = (x + blueOffset);
+            u8 green = (y + greenOffset);
+
+            *pixle++ = (green << 8) | blue;
+
+        }
+        row += buffer->pitch;
+    }
+
+}
 
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
     LRESULT result = 0;
@@ -39,6 +109,17 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             globalRunning = false;
         }break;
 
+        case WM_PAINT: {
+
+            PAINTSTRUCT paint;
+            HDC deviceContext = BeginPaint(window, &paint);
+
+            Win32_window_dimension dimension = win32_getWindowDimensions(window);
+            win32_updateWindow(deviceContext, dimension.width, dimension.height, &globalBackBuffer);
+
+            EndPaint(window, &paint);
+        }break;
+
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
         case WM_KEYDOWN:
@@ -47,7 +128,7 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             // wparam : which key was pressed
             // lparam : additional info about the key press
 
-            uint32 VKCode = (uint32)wParam;
+            u32 VKCode = (u32)wParam;
             bool wasPressed = (lParam & (1 << 30)) != 0;
             bool isPressed = (lParam & (1 << 31)) == 0;
 
@@ -65,7 +146,7 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
                 else if (VKCode == VK_ESCAPE) {}
                 else if (VKCode == VK_SPACE) {}
 
-                bool32 altKeyWasDown = (lParam & (1 << 29)) != 0;
+                bool altKeyWasDown = (lParam & (1 << 29)) != 0;
                 if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
             }
         }break;
@@ -86,27 +167,38 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
     (void)cmdLine;
     (void)cmdShow;
 
-    WNDCLASSA windowClass = {
+    WNDCLASS windowClass = {
         .style = CS_VREDRAW | CS_HREDRAW,
         .lpfnWndProc = win32_mainWindowCallback,
         .hInstance = instance,
-        .lpszClassName = "G.R.E"
+        .lpszClassName = L"G.R.E"
     };
 
-    if(RegisterClassA(&windowClass)){
-        HWND window = CreateWindowExA(0, windowClass.lpszClassName, "G.R.E", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+    if(RegisterClass(&windowClass)){
+        HWND window = CreateWindowEx(0, windowClass.lpszClassName, L"gesture recognition engine", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                                      CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                                      CW_USEDEFAULT, 0, 0, instance, 0);
         if(window){
+            HDC deviceContext = GetDC(window);
+            win32_resizeDIBSection(&globalBackBuffer, 1280, 720);
             globalRunning = true;
 
             while(globalRunning){
+                win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
+
                 MSG message;
                 while(GetMessageA(&message, 0, 0, 0)){
                     TranslateMessage(&message);
                     DispatchMessageA(&message);
                 }
                 globalRunning = false; // GetMessageA got WM_QUIT message and thus returned 0
+
+
+
+
+
+                Win32_window_dimension dimension = win32_getWindowDimensions(window);
+                win32_updateWindow(deviceContext, dimension.width, dimension.height, &globalBackBuffer);
             }
         }else{}
     }else{}
