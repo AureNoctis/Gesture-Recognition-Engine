@@ -3,10 +3,13 @@
 set "WORKSPACE_DIR=%~dp0"
 if "%WORKSPACE_DIR:~-1%"=="\" set "WORKSPACE_DIR=%WORKSPACE_DIR:~0,-1%"
 
+set "INCLUDES= -I %WORKSPACE_DIR%"
+set "OPTIONS= /std:c++20 -DUNICODE -D_UNICODE -Zi /GF /GR"
+
 mkdir build
 pushd build
 
-cl /std:c++20 -DUNICODE -D_UNICODE -Zi /EHsc %WORKSPACE_DIR%\main.cpp
+cl %OPTIONS% %INCLUDES% %WORKSPACE_DIR%\main.cpp
 
 
 popd
