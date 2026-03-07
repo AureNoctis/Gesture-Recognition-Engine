@@ -1,3 +1,6 @@
 [submodule "mstd"]
 	path = mstd
 	url = https://github.com/BlueMoonHunt/mstd.git
+[submodule "LOVE"]
+	path = LOVE
+	url = https://github.com/BlueMoonHunt/LOVE.git
