@@ -2,7 +2,8 @@
 #include <Windows.h>
 #include <stdint.h>
 #include "mstd/mstd.c"
-
+#include <windowsx.h>
+#include <tpcshrd.h>
 
 #pragma comment(lib, "User32")
 #pragma comment(lib, "gdi32")
@@ -95,6 +96,7 @@ static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOf
 }
 
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
+    EnableMouseInPointer(true);
     LRESULT result = 0;
 
     switch (message) {
@@ -153,6 +155,36 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
 
         case WM_ACTIVATEAPP: {}break;
 
+        //==========================================
+
+        case WM_INPUT: {
+            UINT size;
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+
+            if (size > 0) {
+                BYTE* data = new BYTE[size];
+                if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size) {
+                    RAWINPUT* raw = (RAWINPUT*)data;
+
+                    if (raw->header.dwType == RIM_TYPEHID) {
+                        // To see raw hex data from your touchpad
+                        printf("HID Data (Size %d): ", raw->data.hid.dwSizeHid);
+                        // fflush(stdout);
+                        for (u32 i = 0; i < raw->data.hid.dwSizeHid; ++i) {
+                            printf("%02X ", raw->data.hid.bRawData[i]);
+                            // fflush(stdout);
+                        }
+                        printf("\n");
+                        // fflush(stdout);
+                    }
+                }
+                delete[] data;
+            }
+        } break;
+
+
+        //==========================================
+
         default: {
             result = DefWindowProc(window, message, wParam, lParam);
         }break;
@@ -167,6 +199,14 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
     (void)cmdLine;
     (void)cmdShow;
 
+
+    // ======== console ======
+
+    os_init_state();
+    os_attach_console_if_exists();
+
+    // ============================
+
     WNDCLASS windowClass = {
         .style = CS_VREDRAW | CS_HREDRAW,
         .lpfnWndProc = win32_mainWindowCallback,
@@ -179,6 +219,24 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
                                      CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                                      CW_USEDEFAULT, 0, 0, instance, 0);
         if(window){
+
+
+
+            RAWINPUTDEVICE rid[1];
+
+            rid[0].usUsagePage = 0x000D;
+            rid[0].usUsage = 0x0005;
+            rid[0].dwFlags = RIDEV_INPUTSINK;
+            rid[0].hwndTarget = window;
+
+            if(RegisterRawInputDevices(rid, 1, sizeof(rid[0])) == false){
+                // '''''
+            }
+
+
+
+
+
             HDC deviceContext = GetDC(window);
             win32_resizeDIBSection(&globalBackBuffer, 1280, 720);
             globalRunning = true;
@@ -187,19 +245,18 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
                 win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
 
                 MSG message;
-                while(GetMessageA(&message, 0, 0, 0)){
+                while (PeekMessageA(&message, 0, 0, 0, PM_REMOVE)) {
+                    if (message.message == WM_QUIT) {
+                        globalRunning = false;
+                    }
                     TranslateMessage(&message);
                     DispatchMessageA(&message);
                 }
-                globalRunning = false; // GetMessageA got WM_QUIT message and thus returned 0
-
-
-
-
 
                 Win32_window_dimension dimension = win32_getWindowDimensions(window);
                 win32_updateWindow(deviceContext, dimension.width, dimension.height, &globalBackBuffer);
             }
+            ReleaseDC(window, deviceContext);
         }else{}
     }else{}
 }
