@@ -1,12 +1,27 @@
-#include <stdio.h>
-#include <Windows.h>
-#include <stdint.h>
-#include "mstd/mstd.c"
-#include <windowsx.h>
-#include <tpcshrd.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 
-#pragma comment(lib, "User32")
-#pragma comment(lib, "gdi32")
+// 1. C++ Standard Library
+#include <vector>
+#include <iostream>
+#include <stdio.h>
+#include <stdint.h>
+
+// 2. Windows Basics
+#include <Windows.h>
+
+// 3. Fix for hidpi.h (It needs NTSTATUS defined)
+typedef long NTSTATUS;
+#include <hidusage.h>
+#include <hidpi.h>
+
+// 4. custom headers
+#include "mstd/mstd.c"
+
+#pragma comment(lib, "hid.lib")
+#pragma comment(lib, "User32.lib")
+#pragma comment(lib, "gdi32.lib")
 
 
 // ======== struct ==========
@@ -95,21 +110,37 @@ static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOf
 
 }
 
+void ListTouchpadFeatures(HANDLE hDevice) {
+    UINT size = 0;
+
+    // 1. Get size and then fetch the "Preparsed Data" (the hardware's map)
+    GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA, NULL, &size);
+    std::vector<BYTE> ppd(size);
+    GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA, ppd.data(), &size);
+    PHIDP_PREPARSED_DATA preparsedData = (PHIDP_PREPARSED_DATA)ppd.data();
+
+    // 2. Get the device's overall capabilities
+    HIDP_CAPS caps;
+    HidP_GetCaps(preparsedData, &caps);
+
+    // 3. List every sensor "Value" (X, Y, Pressure, etc.)
+    std::vector<HIDP_VALUE_CAPS> valueCaps(caps.NumberInputValueCaps);
+    USHORT valueCapsLen = caps.NumberInputValueCaps;
+    HidP_GetValueCaps(HidP_Input, valueCaps.data(), &valueCapsLen, preparsedData);
+
+    printf("--- Detected Sensor Fields ---\n");
+    for (int i = 0; i < valueCapsLen; i++) {
+        // UsagePage 0x0D is Digitizer, 0x01 is Generic Desktop
+        printf("Field [%d]: UsagePage 0x%02X, Usage 0x%02X, BitSize: %d\n",
+            i, valueCaps[i].UsagePage, valueCaps[i].NotRange.Usage, valueCaps[i].BitSize);
+    }
+}
+
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
-    EnableMouseInPointer(true);
     LRESULT result = 0;
 
     switch (message) {
         case WM_SIZE: {}break;
-
-        case WM_CLOSE: {
-            DestroyWindow(window);
-        }break;
-
-        case WM_DESTROY: {
-            PostQuitMessage(0);
-            globalRunning = false;
-        }break;
 
         case WM_PAINT: {
 
@@ -121,6 +152,11 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
 
             EndPaint(window, &paint);
         }break;
+
+        case WM_DESTROY:
+        {
+            PostQuitMessage(0); // put quit message in message loop
+        } break;
 
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
@@ -134,26 +170,26 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             bool wasPressed = (lParam & (1 << 30)) != 0;
             bool isPressed = (lParam & (1 << 31)) == 0;
 
-            if (wasPressed != isPressed) {
-                if (VKCode == 'W') {}
-                else if (VKCode == 'A') {}
-                else if (VKCode == 'S') {}
-                else if (VKCode == 'D') {}
-                else if (VKCode == 'Q') {}
-                else if (VKCode == 'E') {}
-                else if (VKCode == VK_UP) {}
-                else if (VKCode == VK_DOWN) {}
-                else if (VKCode == VK_RIGHT) {}
-                else if (VKCode == VK_LEFT) {}
-                else if (VKCode == VK_ESCAPE) {}
-                else if (VKCode == VK_SPACE) {}
+            // if (wasPressed != isPressed) {
+            //     if (VKCode == 'W') {}
+            //     else if (VKCode == 'A') {}
+            //     else if (VKCode == 'S') {}
+            //     else if (VKCode == 'D') {}
+            //     else if (VKCode == 'Q') {}
+            //     else if (VKCode == 'E') {}
+            //     else if (VKCode == VK_UP) {}
+            //     else if (VKCode == VK_DOWN) {}
+            //     else if (VKCode == VK_RIGHT) {}
+            //     else if (VKCode == VK_LEFT) {}
+            //     else if (VKCode == VK_ESCAPE) {}
+            //     else if (VKCode == VK_SPACE) {}
+            //     else if (VKCode == VK_LWIN) {}
 
-                bool altKeyWasDown = (lParam & (1 << 29)) != 0;
-                if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
-            }
+                // bool altKeyWasDown = (lParam & (1 << 29)) != 0;
+                // if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
+                result = DefWindowProc(window, message, wParam, lParam);
+            //}
         }break;
-
-        case WM_ACTIVATEAPP: {}break;
 
         //==========================================
 
@@ -166,17 +202,45 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
                 if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size) {
                     RAWINPUT* raw = (RAWINPUT*)data;
 
-                    if (raw->header.dwType == RIM_TYPEHID) {
-                        // To see raw hex data from your touchpad
-                        printf("HID Data (Size %d): ", raw->data.hid.dwSizeHid);
-                        // fflush(stdout);
-                        for (u32 i = 0; i < raw->data.hid.dwSizeHid; ++i) {
-                            printf("%02X ", raw->data.hid.bRawData[i]);
-                            // fflush(stdout);
+                    // ListTouchpadFeatures(raw->header.hDevice);
+
+                    if (raw->header.dwType == RIM_TYPEHID)
+                    {
+                        RAWHID hid = raw->data.hid;
+
+                        for (DWORD i = 0; i < hid.dwCount; i++)
+                        {
+                            BYTE* report = hid.bRawData + i * hid.dwSizeHid;
+
+                            // 🔥 This is your raw HID report
+                            for (DWORD j = 0; j < hid.dwSizeHid; j++)
+                                printf("%02X ", report[j]);
+                            printf("\n");
                         }
-                        printf("\n");
-                        // fflush(stdout);
                     }
+
+
+                    // printf("--- RAWINPUT HEADER ---\n");
+                    // printf("dwType:   %lu\n", raw->header.dwType);
+                    // printf("dwSize:   %lu\n", raw->header.dwSize);
+                    // printf("hDevice:  %p\n", raw->header.hDevice);
+                    // printf("wParam:   %zu\n", (size_t)raw->header.wParam);
+
+                    // if (raw->header.dwType == RIM_TYPEHID) {
+                    //     printf("\n--- RAWHID DATA ---\n");
+                    //     printf("dwSizeHid: %lu\n", raw->data.hid.dwSizeHid);
+                    //     printf("dwCount:   %lu\n", raw->data.hid.dwCount);
+
+                    //     // Calculate total bytes to print
+                    //     DWORD totalBytes = raw->data.hid.dwCount * raw->data.hid.dwSizeHid;
+                    //     printf("Raw Bytes: ");
+                    //     for (DWORD i = 0; i < totalBytes; i++) {
+                    //         printf("%02X ", raw->data.hid.bRawData[i]);
+                    //     }
+                    //     printf("\n");
+                    // }
+
+
                 }
                 delete[] data;
             }
@@ -216,11 +280,9 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
 
     if(RegisterClass(&windowClass)){
         HWND window = CreateWindowEx(0, windowClass.lpszClassName, L"gesture recognition engine", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                                     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                                     CW_USEDEFAULT, 0, 0, instance, 0);
+                                     CW_USEDEFAULT, CW_USEDEFAULT, 200,
+                                     200, 0, 0, instance, 0);
         if(window){
-
-
 
             RAWINPUTDEVICE rid[1];
 
@@ -229,29 +291,32 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
             rid[0].dwFlags = RIDEV_INPUTSINK;
             rid[0].hwndTarget = window;
 
+
             if(RegisterRawInputDevices(rid, 1, sizeof(rid[0])) == false){
                 // '''''
             }
 
-
-
-
-
             HDC deviceContext = GetDC(window);
-            win32_resizeDIBSection(&globalBackBuffer, 1280, 720);
+            win32_resizeDIBSection(&globalBackBuffer, 200, 200);
             globalRunning = true;
 
             while(globalRunning){
                 win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
 
                 MSG message;
-                while (PeekMessageA(&message, 0, 0, 0, PM_REMOVE)) {
-                    if (message.message == WM_QUIT) {
-                        globalRunning = false;
-                    }
+                while (GetMessage(&message, 0, 0, 0)) {
                     TranslateMessage(&message);
-                    DispatchMessageA(&message);
+                    DispatchMessage(&message);
                 }
+                //! WM_QUIT:
+                // It is NOT sent to your window procedure
+                // It is NOT dispatched via DispatchMessage
+                // It is only seen by GetMessage / PeekMessage
+
+                if(message.message == WM_QUIT)
+                    globalRunning = false;
+
+
 
                 Win32_window_dimension dimension = win32_getWindowDimensions(window);
                 win32_updateWindow(deviceContext, dimension.width, dimension.height, &globalBackBuffer);
