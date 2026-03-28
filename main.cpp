@@ -15,13 +15,30 @@
 typedef long NTSTATUS;
 #include <hidusage.h>
 #include <hidpi.h>
+#include <hidsdi.h>
+#include <SetupAPI.h>
 
 // 4. custom headers
-#include "mstd/mstd.c"
+// #include "mstd/mstd.c"
 
 #pragma comment(lib, "hid.lib")
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "Setupapi.lib")
+
+
+// typedefs:
+typedef int8_t   i8;
+typedef int16_t  i16;
+typedef int32_t  i32;
+typedef int64_t  i64;
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef float  f32;
+typedef double f64;
 
 
 // ======== struct ==========
@@ -110,31 +127,7 @@ static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOf
 
 }
 
-void ListTouchpadFeatures(HANDLE hDevice) {
-    UINT size = 0;
 
-    // 1. Get size and then fetch the "Preparsed Data" (the hardware's map)
-    GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA, NULL, &size);
-    std::vector<BYTE> ppd(size);
-    GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA, ppd.data(), &size);
-    PHIDP_PREPARSED_DATA preparsedData = (PHIDP_PREPARSED_DATA)ppd.data();
-
-    // 2. Get the device's overall capabilities
-    HIDP_CAPS caps;
-    HidP_GetCaps(preparsedData, &caps);
-
-    // 3. List every sensor "Value" (X, Y, Pressure, etc.)
-    std::vector<HIDP_VALUE_CAPS> valueCaps(caps.NumberInputValueCaps);
-    USHORT valueCapsLen = caps.NumberInputValueCaps;
-    HidP_GetValueCaps(HidP_Input, valueCaps.data(), &valueCapsLen, preparsedData);
-
-    printf("--- Detected Sensor Fields ---\n");
-    for (int i = 0; i < valueCapsLen; i++) {
-        // UsagePage 0x0D is Digitizer, 0x01 is Generic Desktop
-        printf("Field [%d]: UsagePage 0x%02X, Usage 0x%02X, BitSize: %d\n",
-            i, valueCaps[i].UsagePage, valueCaps[i].NotRange.Usage, valueCaps[i].BitSize);
-    }
-}
 
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
     LRESULT result = 0;
@@ -198,51 +191,128 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
 
             if (size > 0) {
-                BYTE* data = new BYTE[size];
+                BYTE* data = (BYTE*)malloc(size);
                 if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size) {
                     RAWINPUT* raw = (RAWINPUT*)data;
 
-                    // ListTouchpadFeatures(raw->header.hDevice);
 
-                    if (raw->header.dwType == RIM_TYPEHID)
-                    {
-                        RAWHID hid = raw->data.hid;
 
-                        for (DWORD i = 0; i < hid.dwCount; i++)
-                        {
-                            BYTE* report = hid.bRawData + i * hid.dwSizeHid;
+                    unsigned int pdataSize;
+                    GetRawInputDeviceInfo(raw->header.hDevice, RIDI_PREPARSEDDATA, NULL, &pdataSize);
+                    if(pdataSize > 0){
+                        PHIDP_PREPARSED_DATA pPreparsedData = (PHIDP_PREPARSED_DATA)malloc(pdataSize);
+                        GetRawInputDeviceInfo(raw->header.hDevice, RIDI_PREPARSEDDATA, pPreparsedData, &pdataSize);
 
-                            // 🔥 This is your raw HID report
-                            for (DWORD j = 0; j < hid.dwSizeHid; j++)
-                                printf("%02X ", report[j]);
-                            printf("\n");
+                        HIDP_CAPS caps;
+                        HidP_GetCaps(pPreparsedData, &caps);
+
+                        // printf("\n===== HIDP_CAPS =====\n");
+
+                        // printf("UsagePage                : 0x%X\n", caps.UsagePage);
+                        // printf("Usage                    : 0x%X\n", caps.Usage);
+
+                        // printf("InputReportByteLength    : %d\n", caps.InputReportByteLength);
+                        // printf("OutputReportByteLength   : %d\n", caps.OutputReportByteLength);
+                        // printf("FeatureReportByteLength  : %d\n", caps.FeatureReportByteLength);
+
+                        // printf("NumberLinkCollectionNodes: %d\n", caps.NumberLinkCollectionNodes);
+
+                        // printf("NumberInputButtonCaps    : %d\n", caps.NumberInputButtonCaps);
+                        // printf("NumberInputValueCaps     : %d\n", caps.NumberInputValueCaps);
+
+                        // printf("NumberInputDataIndices   : %d\n", caps.NumberInputDataIndices);
+
+                        // printf("NumberOutputButtonCaps   : %d\n", caps.NumberOutputButtonCaps);
+                        // printf("NumberOutputValueCaps    : %d\n", caps.NumberOutputValueCaps);
+
+                        // printf("NumberOutputDataIndices  : %d\n", caps.NumberOutputDataIndices);
+
+                        // printf("NumberFeatureButtonCaps  : %d\n", caps.NumberFeatureButtonCaps);
+                        // printf("NumberFeatureValueCaps   : %d\n", caps.NumberFeatureValueCaps);
+
+                        // printf("NumberFeatureDataIndices : %d\n", caps.NumberFeatureDataIndices);
+
+                        // printf("=====================\n");
+
+                        // USHORT valueCapsLength = caps.NumberInputValueCaps;
+                        // HIDP_VALUE_CAPS* valueCaps = (HIDP_VALUE_CAPS*) malloc(sizeof(HIDP_VALUE_CAPS)*valueCapsLength);
+
+                        // if(HidP_GetValueCaps(HidP_Input, valueCaps, &valueCapsLength, pPreparsedData) != HIDP_STATUS_SUCCESS){
+                        //     printf("unable to get value caps\n");
+                        //     free(valueCaps);
+                        // }
+                        // for (int i = 0; i < valueCapsLength; i++){
+                        //     // Basic Info
+                        //     printf("UsagePage: 0x%04X\n", valueCaps[i].UsagePage);
+                        //     printf("ReportID: %u\n", valueCaps[i].ReportID);
+                        //     printf("IsAlias: %s\n", valueCaps[i].IsAlias ? "TRUE" : "FALSE");
+
+                        //     // Linkage Info
+                        //     printf("BitField: 0x%04X\n", valueCaps[i].BitField);
+                        //     printf("LinkCollection: %u\n", valueCaps[i].LinkCollection);
+                        //     printf("LinkUsage: 0x%04X\n", valueCaps[i].LinkUsage);
+                        //     printf("LinkUsagePage: 0x%04X\n", valueCaps[i].LinkUsagePage);
+
+                        //     // Boolean Flags
+                        //     printf("IsRange: %s\n", valueCaps[i].IsRange ? "TRUE" : "FALSE");
+                        //     printf("IsStringRange: %s\n", valueCaps[i].IsStringRange ? "TRUE" : "FALSE");
+                        //     printf("IsDesignatorRange: %s\n", valueCaps[i].IsDesignatorRange ? "TRUE" : "FALSE");
+                        //     printf("IsAbsolute: %s\n", valueCaps[i].IsAbsolute ? "TRUE" : "FALSE");
+                        //     printf("HasNull: %s\n", valueCaps[i].HasNull ? "TRUE" : "FALSE");
+
+                        //     // Sizing and Reserved
+                        //     printf("BitSize: %u\n", valueCaps[i].BitSize);
+                        //     printf("ReportCount: %u\n", valueCaps[i].ReportCount);
+
+                        //     // Units and Limits
+                        //     printf("UnitExp: %lu\n", valueCaps[i].UnitsExp);
+                        //     printf("Units: %lu\n", valueCaps[i].Units);
+                        //     printf("LogicalMin: %ld\n", valueCaps[i].LogicalMin);
+                        //     printf("LogicalMax: %ld\n", valueCaps[i].LogicalMax);
+                        //     printf("PhysicalMin: %ld\n", valueCaps[i].PhysicalMin);
+                        //     printf("PhysicalMax: %ld\n", valueCaps[i].PhysicalMax);
+
+                        //     // Union: NotRange (Since IsRange is false)
+                        //     printf("NotRange.Usage: 0x%04X\n", valueCaps[i].NotRange.Usage);
+                        //     printf("NotRange.StringIndex: %u\n", valueCaps[i].NotRange.StringIndex);
+                        //     printf("NotRange.DesignatorIndex: %u\n", valueCaps[i].NotRange.DesignatorIndex);
+                        //     printf("NotRange.DataIndex: %u\n", valueCaps[i].NotRange.DataIndex);
+                        //     printf("=====================\n");
+                        // }
+                        // free(valueCaps);
+
+
+                        ULONG linkNodeNumber = caps.NumberLinkCollectionNodes;
+                        HIDP_LINK_COLLECTION_NODE* nodes = (HIDP_LINK_COLLECTION_NODE*)malloc(sizeof(HIDP_LINK_COLLECTION_NODE)*linkNodeNumber);
+
+                        if(HidP_GetLinkCollectionNodes(nodes, &linkNodeNumber, pPreparsedData) != HIDP_STATUS_SUCCESS){
+                            printf("Failed to get Link Collection Nodes\n");
+                            free(nodes);
+                            return result;
                         }
+
+                        for (ULONG i = 0; i < linkNodeNumber; i++) {
+                            printf("Node [%u]:\n", i);
+                            printf("UsagePage: 0x%04X, Usage: 0x%04X\n", nodes[i].LinkUsagePage, nodes[i].LinkUsage);
+                            printf("Parent Index: %u\n", nodes[i].Parent);
+                            printf("Children: %u\n", nodes[i].NumberOfChildren);
+                            printf("isAlias: %s\n", nodes[i].IsAlias ? "True" : "False");
+
+
+                        }
+
+
+
+
+
+
+
+
+
+                        free(pPreparsedData);
                     }
-
-
-                    // printf("--- RAWINPUT HEADER ---\n");
-                    // printf("dwType:   %lu\n", raw->header.dwType);
-                    // printf("dwSize:   %lu\n", raw->header.dwSize);
-                    // printf("hDevice:  %p\n", raw->header.hDevice);
-                    // printf("wParam:   %zu\n", (size_t)raw->header.wParam);
-
-                    // if (raw->header.dwType == RIM_TYPEHID) {
-                    //     printf("\n--- RAWHID DATA ---\n");
-                    //     printf("dwSizeHid: %lu\n", raw->data.hid.dwSizeHid);
-                    //     printf("dwCount:   %lu\n", raw->data.hid.dwCount);
-
-                    //     // Calculate total bytes to print
-                    //     DWORD totalBytes = raw->data.hid.dwCount * raw->data.hid.dwSizeHid;
-                    //     printf("Raw Bytes: ");
-                    //     for (DWORD i = 0; i < totalBytes; i++) {
-                    //         printf("%02X ", raw->data.hid.bRawData[i]);
-                    //     }
-                    //     printf("\n");
-                    // }
-
-
                 }
-                delete[] data;
+                free(data);
             }
         } break;
 
@@ -265,9 +335,12 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
 
 
     // ======== console ======
-
-    os_init_state();
-    os_attach_console_if_exists();
+    if (AllocConsole()) {
+        FILE* fDummy;
+        freopen_s(&fDummy, "CONOUT$", "w", stdout);
+        freopen_s(&fDummy, "CONOUT$", "w", stderr);
+        freopen_s(&fDummy, "CONIN$", "r", stdin);
+    }
 
     // ============================
 
