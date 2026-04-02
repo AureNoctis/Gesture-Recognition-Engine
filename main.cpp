@@ -55,11 +55,24 @@ struct Win32_offscrean_buffer {
     int bytesPerPixel = 4;
     int pitch;															// gap between tow rows
 };
+
+struct Win32_InputReportInfo{
+    PHIDP_PREPARSED_DATA pPreparsedData;
+    HIDP_CAPS* caps;
+    HIDP_VALUE_CAPS* valCaps;
+    HIDP_BUTTON_CAPS* buttonCaps;
+    HIDP_LINK_COLLECTION_NODE* linkNodes;
+
+    HANDLE deviceHandle;
+};
+
 // ==========================
 // ======= global_variables ========
 
 bool globalRunning = false;
 static Win32_offscrean_buffer globalBackBuffer;
+static Win32_InputReportInfo globalInputReportInfo;
+static RAWINPUT* globalRawInput;
 //==================================
 
 
@@ -127,6 +140,86 @@ static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOf
 
 }
 
+void Win32_getInputReportInfo(Win32_InputReportInfo* info){
+    unsigned int pdataSize;
+    GetRawInputDeviceInfo(info->deviceHandle, RIDI_PREPARSEDDATA, NULL, &pdataSize);
+    if (pdataSize > 0) {
+
+        if (info->pPreparsedData == nullptr) {
+            info->pPreparsedData = (PHIDP_PREPARSED_DATA)malloc(pdataSize);
+        }
+        GetRawInputDeviceInfo(info->deviceHandle, RIDI_PREPARSEDDATA, info->pPreparsedData, &pdataSize);
+
+
+        if (info->caps == nullptr) {
+            info->caps = (HIDP_CAPS*)malloc(sizeof(HIDP_CAPS));
+        }
+        HidP_GetCaps(info->pPreparsedData, info->caps);
+
+
+        USHORT valCapsLen;
+        if (info->valCaps == nullptr) {
+            valCapsLen = info->caps->NumberInputValueCaps; // 17
+            info->valCaps = (HIDP_VALUE_CAPS*)malloc(sizeof(HIDP_VALUE_CAPS) * valCapsLen);
+        }
+        HidP_GetValueCaps(HidP_Input, info->valCaps, &valCapsLen, info->pPreparsedData);
+
+
+        USHORT buttonCapsLen;
+        if (info->buttonCaps == nullptr) {
+            buttonCapsLen = info->caps->NumberInputButtonCaps; // 11
+            info->buttonCaps = (HIDP_BUTTON_CAPS*)malloc(sizeof(HIDP_BUTTON_CAPS) * buttonCapsLen);
+        }
+        HidP_GetButtonCaps(HidP_Input, info->buttonCaps, &buttonCapsLen, info->pPreparsedData);
+
+
+        ULONG linkNodeNumber;
+        if (info->linkNodes == nullptr) {
+            linkNodeNumber = info->caps->NumberLinkCollectionNodes; // 6
+            info->linkNodes = (HIDP_LINK_COLLECTION_NODE*)malloc(sizeof(HIDP_LINK_COLLECTION_NODE) * linkNodeNumber);
+        }
+        HidP_GetLinkCollectionNodes(info->linkNodes, &linkNodeNumber, info->pPreparsedData);
+
+
+    }
+}
+
+// UINT size;
+// GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+
+// if (size > 0) {
+//     BYTE* data = (BYTE*)malloc(size);
+//     if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size) {
+//         RAWINPUT* raw = (RAWINPUT*)data;
+
+//         if (globalInputReportInfo.deviceHandle == nullptr) {
+//             globalInputReportInfo.deviceHandle = raw->header.hDevice;
+//             Win32_getInputReportInfo(&globalInputReportInfo);
+//         }
+//     }
+//     free(data);
+// }
+
+//! =====================================================================================================================================
+//!                                                              some error
+//! =====================================================================================================================================
+int Win32_getRawData(RAWINPUT* rawData, LPARAM lParam){
+    UINT size;
+    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+
+    BYTE* data;
+    if(globalRawInput == nullptr){
+        if (size > 0)
+            data = (BYTE*)malloc(size);
+    }
+    if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size)
+        globalRawInput = (RAWINPUT*)data;
+    else{
+        return 0;
+    }
+}
+//! =====================================================================================================================================
+
 
 
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
@@ -163,158 +256,26 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             bool wasPressed = (lParam & (1 << 30)) != 0;
             bool isPressed = (lParam & (1 << 31)) == 0;
 
-            // if (wasPressed != isPressed) {
-            //     if (VKCode == 'W') {}
-            //     else if (VKCode == 'A') {}
-            //     else if (VKCode == 'S') {}
-            //     else if (VKCode == 'D') {}
-            //     else if (VKCode == 'Q') {}
-            //     else if (VKCode == 'E') {}
-            //     else if (VKCode == VK_UP) {}
-            //     else if (VKCode == VK_DOWN) {}
-            //     else if (VKCode == VK_RIGHT) {}
-            //     else if (VKCode == VK_LEFT) {}
-            //     else if (VKCode == VK_ESCAPE) {}
-            //     else if (VKCode == VK_SPACE) {}
-            //     else if (VKCode == VK_LWIN) {}
-
-                // bool altKeyWasDown = (lParam & (1 << 29)) != 0;
-                // if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
-                result = DefWindowProc(window, message, wParam, lParam);
+            // bool altKeyWasDown = (lParam & (1 << 29)) != 0;
+            // if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
+            result = DefWindowProc(window, message, wParam, lParam);
             //}
         }break;
 
         //==========================================
 
         case WM_INPUT: {
-            UINT size;
-            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-
-            if (size > 0) {
-                BYTE* data = (BYTE*)malloc(size);
-                if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size) {
-                    RAWINPUT* raw = (RAWINPUT*)data;
-
-
-
-                    unsigned int pdataSize;
-                    GetRawInputDeviceInfo(raw->header.hDevice, RIDI_PREPARSEDDATA, NULL, &pdataSize);
-                    if(pdataSize > 0){
-                        PHIDP_PREPARSED_DATA pPreparsedData = (PHIDP_PREPARSED_DATA)malloc(pdataSize);
-                        GetRawInputDeviceInfo(raw->header.hDevice, RIDI_PREPARSEDDATA, pPreparsedData, &pdataSize);
-
-                        HIDP_CAPS caps;
-                        HidP_GetCaps(pPreparsedData, &caps);
-
-                        // printf("\n===== HIDP_CAPS =====\n");
-
-                        // printf("UsagePage                : 0x%X\n", caps.UsagePage);
-                        // printf("Usage                    : 0x%X\n", caps.Usage);
-
-                        // printf("InputReportByteLength    : %d\n", caps.InputReportByteLength);
-                        // printf("OutputReportByteLength   : %d\n", caps.OutputReportByteLength);
-                        // printf("FeatureReportByteLength  : %d\n", caps.FeatureReportByteLength);
-
-                        // printf("NumberLinkCollectionNodes: %d\n", caps.NumberLinkCollectionNodes);
-
-                        // printf("NumberInputButtonCaps    : %d\n", caps.NumberInputButtonCaps);
-                        // printf("NumberInputValueCaps     : %d\n", caps.NumberInputValueCaps);
-
-                        // printf("NumberInputDataIndices   : %d\n", caps.NumberInputDataIndices);
-
-                        // printf("NumberOutputButtonCaps   : %d\n", caps.NumberOutputButtonCaps);
-                        // printf("NumberOutputValueCaps    : %d\n", caps.NumberOutputValueCaps);
-
-                        // printf("NumberOutputDataIndices  : %d\n", caps.NumberOutputDataIndices);
-
-                        // printf("NumberFeatureButtonCaps  : %d\n", caps.NumberFeatureButtonCaps);
-                        // printf("NumberFeatureValueCaps   : %d\n", caps.NumberFeatureValueCaps);
-
-                        // printf("NumberFeatureDataIndices : %d\n", caps.NumberFeatureDataIndices);
-
-                        // printf("=====================\n");
-
-                        // USHORT valueCapsLength = caps.NumberInputValueCaps;
-                        // HIDP_VALUE_CAPS* valueCaps = (HIDP_VALUE_CAPS*) malloc(sizeof(HIDP_VALUE_CAPS)*valueCapsLength);
-
-                        // if(HidP_GetValueCaps(HidP_Input, valueCaps, &valueCapsLength, pPreparsedData) != HIDP_STATUS_SUCCESS){
-                        //     printf("unable to get value caps\n");
-                        //     free(valueCaps);
-                        // }
-                        // for (int i = 0; i < valueCapsLength; i++){
-                        //     // Basic Info
-                        //     printf("UsagePage: 0x%04X\n", valueCaps[i].UsagePage);
-                        //     printf("ReportID: %u\n", valueCaps[i].ReportID);
-                        //     printf("IsAlias: %s\n", valueCaps[i].IsAlias ? "TRUE" : "FALSE");
-
-                        //     // Linkage Info
-                        //     printf("BitField: 0x%04X\n", valueCaps[i].BitField);
-                        //     printf("LinkCollection: %u\n", valueCaps[i].LinkCollection);
-                        //     printf("LinkUsage: 0x%04X\n", valueCaps[i].LinkUsage);
-                        //     printf("LinkUsagePage: 0x%04X\n", valueCaps[i].LinkUsagePage);
-
-                        //     // Boolean Flags
-                        //     printf("IsRange: %s\n", valueCaps[i].IsRange ? "TRUE" : "FALSE");
-                        //     printf("IsStringRange: %s\n", valueCaps[i].IsStringRange ? "TRUE" : "FALSE");
-                        //     printf("IsDesignatorRange: %s\n", valueCaps[i].IsDesignatorRange ? "TRUE" : "FALSE");
-                        //     printf("IsAbsolute: %s\n", valueCaps[i].IsAbsolute ? "TRUE" : "FALSE");
-                        //     printf("HasNull: %s\n", valueCaps[i].HasNull ? "TRUE" : "FALSE");
-
-                        //     // Sizing and Reserved
-                        //     printf("BitSize: %u\n", valueCaps[i].BitSize);
-                        //     printf("ReportCount: %u\n", valueCaps[i].ReportCount);
-
-                        //     // Units and Limits
-                        //     printf("UnitExp: %lu\n", valueCaps[i].UnitsExp);
-                        //     printf("Units: %lu\n", valueCaps[i].Units);
-                        //     printf("LogicalMin: %ld\n", valueCaps[i].LogicalMin);
-                        //     printf("LogicalMax: %ld\n", valueCaps[i].LogicalMax);
-                        //     printf("PhysicalMin: %ld\n", valueCaps[i].PhysicalMin);
-                        //     printf("PhysicalMax: %ld\n", valueCaps[i].PhysicalMax);
-
-                        //     // Union: NotRange (Since IsRange is false)
-                        //     printf("NotRange.Usage: 0x%04X\n", valueCaps[i].NotRange.Usage);
-                        //     printf("NotRange.StringIndex: %u\n", valueCaps[i].NotRange.StringIndex);
-                        //     printf("NotRange.DesignatorIndex: %u\n", valueCaps[i].NotRange.DesignatorIndex);
-                        //     printf("NotRange.DataIndex: %u\n", valueCaps[i].NotRange.DataIndex);
-                        //     printf("=====================\n");
-                        // }
-                        // free(valueCaps);
-
-
-                        ULONG linkNodeNumber = caps.NumberLinkCollectionNodes;
-                        HIDP_LINK_COLLECTION_NODE* nodes = (HIDP_LINK_COLLECTION_NODE*)malloc(sizeof(HIDP_LINK_COLLECTION_NODE)*linkNodeNumber);
-
-                        if(HidP_GetLinkCollectionNodes(nodes, &linkNodeNumber, pPreparsedData) != HIDP_STATUS_SUCCESS){
-                            printf("Failed to get Link Collection Nodes\n");
-                            free(nodes);
-                            return result;
-                        }
-
-                        for (ULONG i = 0; i < linkNodeNumber; i++) {
-                            printf("Node [%u]:\n", i);
-                            printf("UsagePage: 0x%04X, Usage: 0x%04X\n", nodes[i].LinkUsagePage, nodes[i].LinkUsage);
-                            printf("Parent Index: %u\n", nodes[i].Parent);
-                            printf("Children: %u\n", nodes[i].NumberOfChildren);
-                            printf("isAlias: %s\n", nodes[i].IsAlias ? "True" : "False");
-
-
-                        }
-
-
-
-
-
-
-
-
-
-                        free(pPreparsedData);
-                    }
+            if(Win32_getRawData(globalRawInput, lParam)){
+                if (globalInputReportInfo.deviceHandle == nullptr) {
+                    globalInputReportInfo.deviceHandle = globalRawInput->header.hDevice;
+                    Win32_getInputReportInfo(&globalInputReportInfo);
                 }
-                free(data);
             }
+
+            /*  mechanism  */
+
         } break;
+
 
 
         //==========================================
@@ -397,4 +358,12 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
             ReleaseDC(window, deviceContext);
         }else{}
     }else{}
+
+
+    free(globalRawInput);
+    free(globalInputReportInfo.pPreparsedData);
+    free(globalInputReportInfo.linkNodes);
+    free(globalInputReportInfo.caps);
+    free(globalInputReportInfo.valCaps);
+    free(globalInputReportInfo.buttonCaps);
 }
