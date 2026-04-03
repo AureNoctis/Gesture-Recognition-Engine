@@ -20,6 +20,7 @@ typedef long NTSTATUS;
 
 // 4. custom headers
 // #include "mstd/mstd.c"
+#include "usage.h"
 
 #pragma comment(lib, "hid.lib")
 #pragma comment(lib, "User32.lib")
@@ -66,7 +67,7 @@ struct Win32_InputReportInfo{
     HANDLE deviceHandle;
 };
 
-// ==========================
+
 // ======= global_variables ========
 
 bool globalRunning = false;
@@ -105,12 +106,12 @@ static void win32_resizeDIBSection(Win32_offscrean_buffer* buffer, int width, in
     buffer->width = width;
     buffer->height = height;
 
-    buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);	// specifing the rules
+    buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);	    // specifing the rules
     buffer->info.bmiHeader.biWidth = buffer->width;						// ...
     buffer->info.bmiHeader.biHeight = -buffer->height;					// ...
-    buffer->info.bmiHeader.biPlanes = 1;									// ...
+    buffer->info.bmiHeader.biPlanes = 1;								// ...
     buffer->info.bmiHeader.biBitCount = 32;								// 4 bytes = 3(rgb) + 1(padding: for proper aligment) : size of each pixle
-    buffer->info.bmiHeader.biCompression = BI_RGB;						    // ...
+    buffer->info.bmiHeader.biCompression = BI_RGB;					    // ...
 
     int bitMapmemorySize = (width * height) * buffer->bytesPerPixel;
     buffer->memory = VirtualAlloc(0, bitMapmemorySize, MEM_COMMIT, PAGE_READWRITE);
@@ -141,21 +142,20 @@ static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOf
 }
 
 void Win32_getInputReportInfo(Win32_InputReportInfo* info){
+    // allocat buffer if not allocated else reuse that
+
     unsigned int pdataSize;
     GetRawInputDeviceInfo(info->deviceHandle, RIDI_PREPARSEDDATA, NULL, &pdataSize);
     if (pdataSize > 0) {
-
         if (info->pPreparsedData == nullptr) {
             info->pPreparsedData = (PHIDP_PREPARSED_DATA)malloc(pdataSize);
         }
         GetRawInputDeviceInfo(info->deviceHandle, RIDI_PREPARSEDDATA, info->pPreparsedData, &pdataSize);
 
-
         if (info->caps == nullptr) {
             info->caps = (HIDP_CAPS*)malloc(sizeof(HIDP_CAPS));
         }
         HidP_GetCaps(info->pPreparsedData, info->caps);
-
 
         USHORT valCapsLen;
         if (info->valCaps == nullptr) {
@@ -164,14 +164,12 @@ void Win32_getInputReportInfo(Win32_InputReportInfo* info){
         }
         HidP_GetValueCaps(HidP_Input, info->valCaps, &valCapsLen, info->pPreparsedData);
 
-
         USHORT buttonCapsLen;
         if (info->buttonCaps == nullptr) {
             buttonCapsLen = info->caps->NumberInputButtonCaps; // 11
             info->buttonCaps = (HIDP_BUTTON_CAPS*)malloc(sizeof(HIDP_BUTTON_CAPS) * buttonCapsLen);
         }
         HidP_GetButtonCaps(HidP_Input, info->buttonCaps, &buttonCapsLen, info->pPreparsedData);
-
 
         ULONG linkNodeNumber;
         if (info->linkNodes == nullptr) {
@@ -184,42 +182,30 @@ void Win32_getInputReportInfo(Win32_InputReportInfo* info){
     }
 }
 
-// UINT size;
-// GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
 
-// if (size > 0) {
-//     BYTE* data = (BYTE*)malloc(size);
-//     if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size) {
-//         RAWINPUT* raw = (RAWINPUT*)data;
-
-//         if (globalInputReportInfo.deviceHandle == nullptr) {
-//             globalInputReportInfo.deviceHandle = raw->header.hDevice;
-//             Win32_getInputReportInfo(&globalInputReportInfo);
-//         }
-//     }
-//     free(data);
-// }
-
-//! =====================================================================================================================================
-//!                                                              some error
-//! =====================================================================================================================================
 int Win32_getRawData(RAWINPUT* rawData, LPARAM lParam){
+    // allocat buffer if not allocated else reuse that
+
     UINT size;
     GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
 
-    BYTE* data;
-    if(globalRawInput == nullptr){
-        if (size > 0)
-            data = (BYTE*)malloc(size);
+    char return_value = 0;
+    if(globalRawInput == nullptr && size > 0){
+        globalRawInput = (RAWINPUT*)malloc(size);
+        return_value = 1;
     }
-    if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER)) == size)
-        globalRawInput = (RAWINPUT*)data;
-    else{
-        return 0;
-    }
-}
-//! =====================================================================================================================================
 
+    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (BYTE*)globalRawInput, &size, sizeof(RAWINPUTHEADER));
+    return return_value;
+}
+
+
+//! ============
+
+unsigned int prev_val = 0;
+unsigned int no_of_iter = 1;
+
+//! ============
 
 
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
@@ -262,23 +248,36 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             //}
         }break;
 
-        //==========================================
-
         case WM_INPUT: {
-            if(Win32_getRawData(globalRawInput, lParam)){
-                if (globalInputReportInfo.deviceHandle == nullptr) {
+            if (Win32_getRawData(globalRawInput, lParam) && globalInputReportInfo.deviceHandle == nullptr) {
                     globalInputReportInfo.deviceHandle = globalRawInput->header.hDevice;
                     Win32_getInputReportInfo(&globalInputReportInfo);
-                }
             }
 
-            /*  mechanism  */
+            ULONG count = 999;
+            NTSTATUS s = HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, 0, U_DIGITIZER_CONTACT_COUNT,
+                               &count, globalInputReportInfo.pPreparsedData,
+                               (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
+
+
+
+            if(count == prev_val){
+                for(int i = 0; i < no_of_iter >> 2; i++)
+                    printf("*");
+                no_of_iter++;
+            }else{
+                no_of_iter =1;
+            }
+
+            printf(" -- %d \n", count);
+
+            prev_val = count;
+
+
+
+
 
         } break;
-
-
-
-        //==========================================
 
         default: {
             result = DefWindowProc(window, message, wParam, lParam);
@@ -302,7 +301,6 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
         freopen_s(&fDummy, "CONOUT$", "w", stderr);
         freopen_s(&fDummy, "CONIN$", "r", stdin);
     }
-
     // ============================
 
     WNDCLASS windowClass = {

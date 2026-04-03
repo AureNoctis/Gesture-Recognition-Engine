@@ -1,35 +1,42 @@
-DataIndex  Type    ReportType   UsagePage  LinkCollection  Usage   BitSize
----------------------------------------------------------------------------
-0          BUTTON  HidP_Input   0x09       0               0x01    1
-1          VALUE   HidP_Input   0x0D       0               0x54    4
-2          VALUE   HidP_Input   0x0D       0               0x56    16
+DataIndex  Type    ReportType   UsagePage  LinkCollection  Usage   Name                     BitSize
+------------------------------------------------------------------------------------------------------
+0          BUTTON  HidP_Input   0x09       0               0x01    Button 1 (Tip Switch)    1
 
-3          BUTTON  HidP_Input   0x0D       1               0x42    1
-4          BUTTON  HidP_Input   0x0D       1               0x47    1
-5          VALUE   HidP_Input   0x0D       1               0x51    4
-6          VALUE   HidP_Input   0x01       1               0x30    16
-7          VALUE   HidP_Input   0x01       1               0x31    16
+1          VALUE   HidP_Input   0x0D       0               0x54    Contact Count            4
+2          VALUE   HidP_Input   0x0D       0               0x56    Contact Count Maximum    16
 
-8          BUTTON  HidP_Input   0x0D       2               0x42    1
-9          BUTTON  HidP_Input   0x0D       2               0x47    1
-10         VALUE   HidP_Input   0x0D       2               0x51    4
-11         VALUE   HidP_Input   0x01       2               0x30    16
-12         VALUE   HidP_Input   0x01       2               0x31    16
 
-13         BUTTON  HidP_Input   0x0D       3               0x42    1
-14         BUTTON  HidP_Input   0x0D       3               0x47    1
-15         VALUE   HidP_Input   0x0D       3               0x51    4
-16         VALUE   HidP_Input   0x01       3               0x30    16
-17         VALUE   HidP_Input   0x01       3               0x31    16
+-- Finger 1 (LinkCollection 1) --
+3          BUTTON  HidP_Input   0x0D       1               0x42    Tip Switch               1
+4          BUTTON  HidP_Input   0x0D       1               0x47    Confidence               1
+5          VALUE   HidP_Input   0x0D       1               0x51    Contact ID               4
+6          VALUE   HidP_Input   0x01       1               0x30    X                        16
+7          VALUE   HidP_Input   0x01       1               0x31    Y                        16
 
-18         BUTTON  HidP_Input   0x0D       4               0x42    1
-19         BUTTON  HidP_Input   0x0D       4               0x47    1
-20         VALUE   HidP_Input   0x0D       4               0x51    4
-21         VALUE   HidP_Input   0x01       4               0x30    16
-22         VALUE   HidP_Input   0x01       4               0x31    16
+-- Finger 2 (LinkCollection 2) --
+8          BUTTON  HidP_Input   0x0D       2               0x42    Tip Switch               1
+9          BUTTON  HidP_Input   0x0D       2               0x47    Confidence               1
+10         VALUE   HidP_Input   0x0D       2               0x51    Contact ID               4
+11         VALUE   HidP_Input   0x01       2               0x30    X                        16
+12         VALUE   HidP_Input   0x01       2               0x31    Y                        16
 
-23         BUTTON  HidP_Input   0x0D       5               0x42    1
-24         BUTTON  HidP_Input   0x0D       5               0x47    1
-25         VALUE   HidP_Input   0x0D       5               0x51    4
-26         VALUE   HidP_Input   0x01       5               0x30    16
-27         VALUE   HidP_Input   0x01       5               0x31    16
+-- Finger 3 (LinkCollection 3) --
+13         BUTTON  HidP_Input   0x0D       3               0x42    Tip Switch               1
+14         BUTTON  HidP_Input   0x0D       3               0x47    Confidence               1
+15         VALUE   HidP_Input   0x0D       3               0x51    Contact ID               4
+16         VALUE   HidP_Input   0x01       3               0x30    X                        16
+17         VALUE   HidP_Input   0x01       3               0x31    Y                        16
+
+-- Finger 4 (LinkCollection 4) --
+18         BUTTON  HidP_Input   0x0D       4               0x42    Tip Switch               1
+19         BUTTON  HidP_Input   0x0D       4               0x47    Confidence               1
+20         VALUE   HidP_Input   0x0D       4               0x51    Contact ID               4
+21         VALUE   HidP_Input   0x01       4               0x30    X                        16
+22         VALUE   HidP_Input   0x01       4               0x31    Y                        16
+
+-- Finger 5 (LinkCollection 5) --
+23         BUTTON  HidP_Input   0x0D       5               0x42    Tip Switch               1
+24         BUTTON  HidP_Input   0x0D       5               0x47    Confidence               1
+25         VALUE   HidP_Input   0x0D       5               0x51    Contact ID               4
+26         VALUE   HidP_Input   0x01       5               0x30    X                        16
+27         VALUE   HidP_Input   0x01       5               0x31    Y                        16
