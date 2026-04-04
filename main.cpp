@@ -1,3 +1,10 @@
+//! ===================================================================    TODO    =============================================================
+/*
+    * 1) find a proper way to print debuging info
+
+*/
+//! ============================================================================================================================================
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -73,7 +80,10 @@ struct Win32_InputReportInfo{
 bool globalRunning = false;
 static Win32_offscrean_buffer globalBackBuffer;
 static Win32_InputReportInfo globalInputReportInfo;
+
 static RAWINPUT* globalRawInput;
+static UINT currentRawInputSize = 0;
+
 //==================================
 
 
@@ -194,6 +204,11 @@ int Win32_getRawData(RAWINPUT* rawData, LPARAM lParam){
         globalRawInput = (RAWINPUT*)malloc(size);
         return_value = 1;
     }
+    if (size > currentRawInputSize) {
+        free(globalRawInput);
+        globalRawInput = (RAWINPUT*)malloc(size);
+        currentRawInputSize = size;
+    }
 
     GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (BYTE*)globalRawInput, &size, sizeof(RAWINPUTHEADER));
     return return_value;
@@ -209,10 +224,11 @@ unsigned int no_of_iter = 1;
 
 
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
-    LRESULT result = 0;
 
     switch (message) {
-        case WM_SIZE: {}break;
+        case WM_SIZE: {
+            return DefWindowProc(window, message, wParam, lParam);
+        }break;
 
         case WM_PAINT: {
 
@@ -223,11 +239,13 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             win32_updateWindow(deviceContext, dimension.width, dimension.height, &globalBackBuffer);
 
             EndPaint(window, &paint);
+            return 0;
         }break;
 
         case WM_DESTROY:
         {
             PostQuitMessage(0); // put quit message in message loop
+            return 0;
         } break;
 
         case WM_SYSKEYDOWN:
@@ -244,7 +262,7 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
 
             // bool altKeyWasDown = (lParam & (1 << 29)) != 0;
             // if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
-            result = DefWindowProc(window, message, wParam, lParam);
+            return DefWindowProc(window, message, wParam, lParam);
             //}
         }break;
 
@@ -270,20 +288,18 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             }
 
             printf(" -- %d \n", count);
-
             prev_val = count;
 
 
 
 
-
+            return DefWindowProc(window, message, wParam, lParam);
         } break;
 
         default: {
-            result = DefWindowProc(window, message, wParam, lParam);
+            return DefWindowProc(window, message, wParam, lParam);
         }break;
     }
-    return result;
 }
 
 
@@ -300,6 +316,24 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
         freopen_s(&fDummy, "CONOUT$", "w", stdout);
         freopen_s(&fDummy, "CONOUT$", "w", stderr);
         freopen_s(&fDummy, "CONIN$", "r", stdin);
+
+        // OUTPUT MODE (colors etc.)
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD outMode = 0;
+        GetConsoleMode(hOut, &outMode);
+        outMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        SetConsoleMode(hOut, outMode);
+
+        // INPUT MODE (FIX FREEZE)
+        HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+        DWORD inMode = 0;
+        GetConsoleMode(hIn, &inMode);
+
+        inMode |= ENABLE_EXTENDED_FLAGS;      // required
+        inMode &= ~ENABLE_QUICK_EDIT_MODE;    // disable freeze
+        inMode &= ~ENABLE_INSERT_MODE;        // optional
+
+        SetConsoleMode(hIn, inMode);
     }
     // ============================
 
@@ -336,7 +370,10 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
                 win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
 
                 MSG message;
-                while (GetMessage(&message, 0, 0, 0)) {
+                while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
+                    if(message.message == WM_QUIT)
+                        globalRunning = false;
+
                     TranslateMessage(&message);
                     DispatchMessage(&message);
                 }
@@ -345,8 +382,6 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
                 // It is NOT dispatched via DispatchMessage
                 // It is only seen by GetMessage / PeekMessage
 
-                if(message.message == WM_QUIT)
-                    globalRunning = false;
 
 
 
