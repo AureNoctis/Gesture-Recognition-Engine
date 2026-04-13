@@ -1,6 +1,11 @@
 //! ===================================================================    TODO    =============================================================
 /*
-    * 1) find a proper way to print debuging info
+    * 1) find a proper way to print preparsed info
+    * 2) how does button 1 value changes
+    * 3) find a proper way to store data
+
+    * 4) function to know type of device( synamic, static, hybride)
+    * 5) function to update all the data
 
 */
 //! ============================================================================================================================================
@@ -82,7 +87,7 @@ static Win32_offscrean_buffer globalBackBuffer;
 static Win32_InputReportInfo globalInputReportInfo;
 
 static RAWINPUT* globalRawInput;
-static UINT currentRawInputSize = 0;
+static UINT prevRawInputSize = 0;
 
 //==================================
 
@@ -151,6 +156,8 @@ static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOf
 
 }
 
+
+
 void Win32_getInputReportInfo(Win32_InputReportInfo* info){
     // allocat buffer if not allocated else reuse that
 
@@ -192,22 +199,35 @@ void Win32_getInputReportInfo(Win32_InputReportInfo* info){
     }
 }
 
+void win32_getUsageValue_stausValue(NTSTATUS status) {
+    printf("\033[1;31m");
+    switch (status) {
+    case HIDP_STATUS_SUCCESS: printf("SUCCESS"); break;
+    case HIDP_STATUS_INVALID_REPORT_LENGTH: printf("INVALID_REPORT_LENGTH"); break;
+    case HIDP_STATUS_INVALID_REPORT_TYPE: printf("INVALID_REPORT_TYPE"); break;
+    case HIDP_STATUS_INCOMPATIBLE_REPORT_ID: printf("INCOMPATIBLE_REPORT_ID"); break;
+    case HIDP_STATUS_INVALID_PREPARSED_DATA: printf("INVALID_PREPARSED_DATA"); break;
+    case HIDP_STATUS_USAGE_NOT_FOUND: printf("USAGE_NOT_FOUND"); break;
+    }
+    printf("\033[0m \n");
+}
 
 int Win32_getRawData(RAWINPUT* rawData, LPARAM lParam){
     // allocat buffer if not allocated else reuse that
 
     UINT size;
     GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-
     char return_value = 0;
+
+    if (size > prevRawInputSize && globalRawInput != nullptr) { // just in case size of raw input changed (for dynamic touch pad)
+        RAWINPUT* new_globalRawInput = (RAWINPUT*)realloc(globalRawInput, size);
+        if(new_globalRawInput != nullptr)
+            globalRawInput = new_globalRawInput;
+        prevRawInputSize = size;
+    }
     if(globalRawInput == nullptr && size > 0){
         globalRawInput = (RAWINPUT*)malloc(size);
         return_value = 1;
-    }
-    if (size > currentRawInputSize) {
-        free(globalRawInput);
-        globalRawInput = (RAWINPUT*)malloc(size);
-        currentRawInputSize = size;
     }
 
     GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (BYTE*)globalRawInput, &size, sizeof(RAWINPUTHEADER));
@@ -215,12 +235,75 @@ int Win32_getRawData(RAWINPUT* rawData, LPARAM lParam){
 }
 
 
-//! ============
+void win32_printTouchpadData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw) {
+    NTSTATUS s1, s2;
 
-unsigned int prev_val = 0;
-unsigned int no_of_iter = 1;
+    char* report = (char*)raw->data.hid.bRawData;
+    ULONG reportLen = raw->data.hid.dwSizeHid;
 
-//! ============
+    // Get Contact Count
+    ULONG contactCount = 0;
+    HidP_GetUsageValue(
+        HidP_Input,
+        UP_DIGITIZER,
+        0,
+        U_DIGITIZER_CONTACT_COUNT,
+        &contactCount,
+        preparsedData,
+        report,
+        reportLen
+    );
+    ULONG button_flag = 0;
+    HidP_GetUsageValue(
+        HidP_Input,
+        UP_BUTTON,
+        0,
+        U_BUTTON,
+        &button_flag,
+        preparsedData,
+        report,
+        reportLen
+    );
+
+    printf("-------------------------------------------------\n");
+    printf("Contact Count : %lu\n", contactCount);
+    printf("button flag : %d\n\n", button_flag ? 1 : 0);
+
+
+    // Header with large spacing
+    printf("Finger        Tip        Confidence        ID        X              Y\n");
+
+    // Iterate Fingers
+    for (ULONG link = 1; link <= globalInputReportInfo.caps->NumberLinkCollectionNodes - 1; link++)
+    {
+        ULONG tip = 9999;
+        ULONG conf = 9999;
+        ULONG id = 9999;
+        ULONG x = 9999;
+        ULONG y = 9999;
+
+        s1 = HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, link, U_FINGER_TIP,
+            &tip, preparsedData, report, reportLen);
+
+        s2 = HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, link, U_FINGER_CONFIDENCE,
+            &conf, preparsedData, report, reportLen);
+
+        HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, link, U_FINGER_ID,
+            &id, preparsedData, report, reportLen);
+
+        HidP_GetUsageValue(HidP_Input, UP_GENERIC_DESKTOP, link, U_FINGER_X,
+            &x, preparsedData, report, reportLen);
+
+        HidP_GetUsageValue(HidP_Input, UP_GENERIC_DESKTOP, link, U_FINGER_Y,
+            &y, preparsedData, report, reportLen);
+
+        printf("F%-2lu          %-3lu        %-10lu        %-3lu       %-10lu     %-10lu\n",
+                link, tip, conf, id, x, y);
+    }
+    win32_getUsageValue_stausValue(s1);
+    win32_getUsageValue_stausValue(s2);
+
+}
 
 
 LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam){
@@ -262,8 +345,8 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
 
             // bool altKeyWasDown = (lParam & (1 << 29)) != 0;
             // if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
-            return DefWindowProc(window, message, wParam, lParam);
             //}
+            return DefWindowProc(window, message, wParam, lParam);
         }break;
 
         case WM_INPUT: {
@@ -272,25 +355,34 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
                     Win32_getInputReportInfo(&globalInputReportInfo);
             }
 
-            ULONG count = 999;
-            NTSTATUS s = HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, 0, U_DIGITIZER_CONTACT_COUNT,
-                               &count, globalInputReportInfo.pPreparsedData,
-                               (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
+            /*     ------------     */
+
+            // long scaled_val = -999;
+            // HidP_GetScaledUsageValue(HidP_Input, UP_GENERIC_DESKTOP, 1, U_FINGER_X,
+            //                          &scaled_val, globalInputReportInfo.pPreparsedData, (char*)globalRawInput->data.hid.bRawData,
+            //                          globalRawInput->data.hid.dwSizeHid);
+
+            // ULONG val = 999;
+            // HidP_GetUsageValue(HidP_Input, UP_GENERIC_DESKTOP, 1, U_FINGER_X,
+            //     &val, globalInputReportInfo.pPreparsedData,
+            //     (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
+
+            // printf("scaled val: %d \t val: %lu \n", (int)scaled_val, val);
 
 
+            // win32_printTouchpadData(globalInputReportInfo.pPreparsedData, globalRawInput);
 
-            if(count == prev_val){
-                for(int i = 0; i < no_of_iter >> 2; i++)
-                    printf("*");
-                no_of_iter++;
-            }else{
-                no_of_iter =1;
-            }
+            ULONG tip = 0;
+            ULONG conf = 0;
 
-            printf(" -- %d \n", count);
-            prev_val = count;
+            HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, 1, U_FINGER_TIP, &tip,
+                globalInputReportInfo.pPreparsedData, (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
 
+            HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, 1, U_FINGER_CONFIDENCE, &tip,
+                globalInputReportInfo.pPreparsedData, (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
 
+            printf("tip : %lu \t conf : %lu\n", tip ? 1 : 0, conf ? 1 : 0);
+            /*     ------------     */
 
 
             return DefWindowProc(window, message, wParam, lParam);

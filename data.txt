@@ -1,0 +1,338 @@
+
+                                                            **********  VALUE  CAPS  ***********
+
+
+
+=======  all 17  =========
+isAbsolute : true
+isAlias : false
+IsDesignatorRange : false
+IsRange : false
+isStringRange : false
+
+hasNULL : false
+
+ReportID : 0x54
+ReportCount : 1
+
+linkUsagePage : 0x0D
+
+NotRange.DesignatorIndex : 0
+NotRange.StringIndex : 0
+
+bit field(short) : 0000 0000 0000 0010
+
+====== link Collection(6: TLC: 0 --child-->{5 <-> 4 <-> 3 <-> 2 <-> 1}) =======
+0 : {0, 1}         global control
+1 : {2, 3, 4}
+2 : {5, 6, 7}
+3 : {8, 9, 10}
+4 : {11, 12, 13}
+5 : {14, 15, 16}
+
+====== usage Page ===========
+0x0D : {0, 1, 2, 5, 8, 11, 14} digitizer
+0x01 : {3, 4, 6, 7, 9, 10, 12, 13, 15, 16} generic (x, y)
+
+===== link usage ======
+0x05 : {0, 1}     : digitizer touch pad
+0x22 : {other}    : digitizer finger
+
+===== NotRange.usage ========
+0 : 0x54
+1 : 0x56
+
+2 : 0x51
+3 : 0x30
+4 : 0x31
+
+5 : 0x51
+6 : 0x30
+7 : 0x31
+
+8 : 0x51
+9 : 0x30
+10 : 0x31
+
+11 : 0x51
+12 : 0x30
+13 : 0x31
+
+14 : 0x51
+15 : 0x30
+16 : 0x31
+
+====== NotRange.DataIndex (total 28 (17 + 11) values) ========
+0 : 1
+1 : 2
+2 : 5
+3 : 6
+4 : 7
+5 : 10
+6 : 11
+7 : 12
+8 : 15
+9 : 16
+10 : 17
+11 : 20
+12 : 21
+13 : 22
+14 : 25
+15 : 26
+16 : 27
+
+========== bit size ==========
+0 : 4
+1 : 16
+2 : 4
+3 : 16
+4 : 16
+5 : 4
+6 : 16
+7 : 16
+8 : 4
+9 : 16
+10 : 16
+11 : 4
+12 : 16
+13 : 16
+14 : 4
+15 : 16
+16 : 16
+
+=========== logical min - logical max =============
+0 : 0 - 15
+1 : 0 - 65535
+2 : 0 - 15
+3 : 0 - 3220
+4 : 0 - 1952
+5 : 0 - 15
+6 : 0 - 3220
+7 : 0 - 1952
+8 : 0 - 15
+9 : 0 - 3220
+10 : 0 - 1952
+11 : 0 - 15
+12 : 0 - 3220
+13 : 0 - 1952
+14 : 0 - 15
+15 : 0 - 3220
+16 : 0 - 1952
+
+======== physical min - physical max ===========
+0 : 0 - 0
+1 : 0 - 65535
+2 : 0 - 65535
+3 : 0 - 402
+4 : 0 - 244
+5 : 0 - 244
+6 : 0 - 402
+7 : 0 - 244
+8 : 0 - 244
+9 : 0 - 402
+10 : 0 - 244
+11 : 0 - 244
+12 : 0 - 402
+13 : 0 - 244
+14 : 0 - 244
+15 : 0 - 402
+16 : 0 - 244
+
+======= units exp =======
+0        :    0
+1, 2     :    12 : 1100
+other    :    14 : 1110
+
+====== units =========
+0        :    0
+1, 2     :    4097
+other    :    19
+
+===================================================================
+
+ValueCap[0]  → Contact Count Maximum  (global)
+ValueCap[1]  → Scan Time              (global)
+
+      Contact ID — unique ID for this finger
+
+ValueCap[2]  → Contact ID   (finger 1)
+ValueCap[3]  → X            (finger 1)
+ValueCap[4]  → Y            (finger 1)
+
+ValueCap[5]  → Contact ID   (finger 2)
+ValueCap[6]  → X            (finger 2)
+ValueCap[7]  → Y            (finger 2)
+
+ValueCap[8]  → Contact ID   (finger 3)
+ValueCap[9]  → X            (finger 3)
+ValueCap[10] → Y            (finger 3)
+
+ValueCap[11] → Contact ID   (finger 4)
+ValueCap[12] → X            (finger 4)
+ValueCap[13] → Y            (finger 4)
+
+ValueCap[14] → Contact ID   (finger 5)
+ValueCap[15] → X            (finger 5)
+ValueCap[16] → Y            (finger 5)
+
+=====================================================================
+
+DataIndex 0        → button cap territory
+DataIndex 1        → Contact Count Maximum
+DataIndex 2        → Scan Time
+DataIndex 3, 4     → button cap territory (finger 1 tip switch etc.)
+DataIndex 5        → Contact ID   (finger 1)
+DataIndex 6        → X            (finger 1)
+DataIndex 7        → Y            (finger 1)
+DataIndex 8, 9     → button cap territory (finger 2)
+DataIndex 10       → Contact ID   (finger 2)
+DataIndex 11       → X            (finger 2)
+DataIndex 12       → Y            (finger 2)
+DataIndex 13, 14   → button cap territory (finger 3)
+DataIndex 15       → Contact ID   (finger 3)
+DataIndex 16       → X            (finger 3)
+DataIndex 17       → Y            (finger 3)
+DataIndex 18, 19   → button cap territory (finger 4)
+DataIndex 20       → Contact ID   (finger 4)
+DataIndex 21       → X            (finger 4)
+DataIndex 22       → Y            (finger 4)
+DataIndex 23, 24   → button cap territory (finger 5)
+DataIndex 25       → Contact ID   (finger 5)
+DataIndex 26       → X            (finger 5)
+DataIndex 27       → Y            (finger 5)
+
+
+                                                            *************  BUTTON CAPS  ***********
+
+
+========= all 11 ==========
+isAbsolute : true
+isAlias : false
+IsDesignatorRange : false
+IsRange : false
+isStringRange : false
+
+ReportID : 0x54
+ReportCount : 1
+
+bit field(short) : 0000 0000 0000 0010
+
+linkUsagePage : 0x0D
+
+NotRange.DesignatorIndex : 0
+NotRange.StringIndex : 0
+
+====== usage page =======
+0     :  0x09
+other :  0x0D
+
+===== link collection =====
+                  linkUsagePage -> LinkUsage
+0  :  {0}		  0x09 -> 0x05		 BUTTON    -> TOUCH_PAD
+1  :  {1, 2}    	  0x0D -> 0x22		 DIGITIZER -> FINGER
+2  :  {3, 4}    	  0x0D -> 0x22		 DIGITIZER -> FINGER
+3  :  {5, 6}    	  0x0D -> 0x22		 DIGITIZER -> FINGER
+4  :  {7, 8}    	  0x0D -> 0x22		 DIGITIZER -> FINGER
+5  :  {9, 10}   	  0x0D -> 0x22		 DIGITIZER -> FINGER
+
+===== link usage ======
+0x05 : {0}        : digitizer touch pad
+0x22 : {other}    : digitizer finger
+
+===== NotRange.usage =====
+0 : 0x01 		DIGITIZER
+1 : 0x42 		TIP_SWITCH
+2 : 0x47 		TOUCH_VALID
+3 : 0x42 		TIP_SWITCH
+4 : 0x47 		TOUCH_VALID
+5 : 0x42 		TIP_SWITCH
+6 : 0x47 		TOUCH_VALID
+7 : 0x42 		TIP_SWITCH
+8 : 0x47 		TOUCH_VALID
+9 : 0x42 		TIP_SWITCH
+10 : 0x47		TOUCH_VALID
+
+===== NotRange.DataIndex =====
+0  :  0
+1  :  3
+2  :  4
+3  :  8
+4  :  9
+5  :  13
+6  :  14
+7  :  18
+8  :  19
+9  :  23
+10 :  24
+
+                                                ************* link collection nodes **************
+>>> NODE: 0
+
+LinkUsage        = 5
+LinkUsagePage    = 13
+Parent           = 0
+NumberOfChildren = 5
+NextSibling      = 0
+FirstChild       = 5
+CollectionType   = 1   (Application)
+IsAlias          = 0
+
+
+>>> NODE: 1
+
+LinkUsage        = 34
+LinkUsagePage    = 13
+Parent           = 0
+NumberOfChildren = 0
+NextSibling      = 0
+FirstChild       = 0
+CollectionType   = 2   (Logical/Physical)
+IsAlias          = 0
+
+
+>>> NODE: 2
+
+LinkUsage        = 34
+LinkUsagePage    = 13
+Parent           = 0
+NumberOfChildren = 0
+NextSibling      = 1
+FirstChild       = 0
+CollectionType   = 2
+IsAlias          = 0
+
+
+>>> NODE: 3
+
+LinkUsage        = 34
+LinkUsagePage    = 13
+Parent           = 0
+NumberOfChildren = 0
+NextSibling      = 2
+FirstChild       = 0
+CollectionType   = 2
+IsAlias          = 0
+
+
+>>> NODE: 4
+
+LinkUsage        = 34
+LinkUsagePage    = 13
+Parent           = 0
+NumberOfChildren = 0
+NextSibling      = 3
+FirstChild       = 0
+CollectionType   = 2
+IsAlias          = 0
+
+
+>>> NODE: 5
+
+LinkUsage        = 34
+LinkUsagePage    = 13
+Parent           = 0
+NumberOfChildren = 0
+NextSibling      = 4
+FirstChild       = 0
+CollectionType   = 2
+IsAlias          = 0

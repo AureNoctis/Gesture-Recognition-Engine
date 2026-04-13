@@ -40,3 +40,10 @@ DataIndex  Type    ReportType   UsagePage  LinkCollection  Usage   Name         
 25         VALUE   HidP_Input   0x0D       5               0x51    Contact ID               4
 26         VALUE   HidP_Input   0x01       5               0x30    X                        16
 27         VALUE   HidP_Input   0x01       5               0x31    Y                        16
+
+
+
+>>> to know which link collectin means which finger:
+... see which link collection correspond to which data index(data for finger 1 is in start than other fingers);
+... then see the meaning of those data index
+
