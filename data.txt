@@ -235,9 +235,6 @@ other :  0x0D
 4  :  {7, 8}    	  0x0D -> 0x22		 DIGITIZER -> FINGER
 5  :  {9, 10}   	  0x0D -> 0x22		 DIGITIZER -> FINGER
 
-===== link usage ======
-0x05 : {0}        : digitizer touch pad
-0x22 : {other}    : digitizer finger
 
 ===== NotRange.usage =====
 0 : 0x01 		DIGITIZER

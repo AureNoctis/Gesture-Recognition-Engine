@@ -1,10 +1,8 @@
 //! ===================================================================    TODO    =============================================================
 /*
-    * 1) find a proper way to print preparsed info
-    * 2) how does button 1 value changes
     * 3) find a proper way to store data
 
-    * 4) function to know type of device( synamic, static, hybride)
+    * 4) function to know type of device( dynamic, static, hybride)
     * 5) function to update all the data
 
 */
@@ -70,11 +68,11 @@ struct Win32_offscrean_buffer {
 };
 
 struct Win32_InputReportInfo{
-    PHIDP_PREPARSED_DATA pPreparsedData;
-    HIDP_CAPS* caps;
-    HIDP_VALUE_CAPS* valCaps;
-    HIDP_BUTTON_CAPS* buttonCaps;
-    HIDP_LINK_COLLECTION_NODE* linkNodes;
+    PHIDP_PREPARSED_DATA ptrPreparsedData;
+    HIDP_CAPS* pCaps;
+    HIDP_VALUE_CAPS* pValCaps;
+    HIDP_BUTTON_CAPS* pButtopnCaps;
+    HIDP_LINK_COLLECTION_NODE* pLinkCollection;
 
     HANDLE deviceHandle;
 };
@@ -164,42 +162,59 @@ void Win32_getInputReportInfo(Win32_InputReportInfo* info){
     unsigned int pdataSize;
     GetRawInputDeviceInfo(info->deviceHandle, RIDI_PREPARSEDDATA, NULL, &pdataSize);
     if (pdataSize > 0) {
-        if (info->pPreparsedData == nullptr) {
-            info->pPreparsedData = (PHIDP_PREPARSED_DATA)malloc(pdataSize);
+        if (info->ptrPreparsedData == nullptr) {
+            info->ptrPreparsedData = (PHIDP_PREPARSED_DATA)malloc(pdataSize);
         }
-        GetRawInputDeviceInfo(info->deviceHandle, RIDI_PREPARSEDDATA, info->pPreparsedData, &pdataSize);
+        GetRawInputDeviceInfo(info->deviceHandle, RIDI_PREPARSEDDATA, info->ptrPreparsedData, &pdataSize);
 
-        if (info->caps == nullptr) {
-            info->caps = (HIDP_CAPS*)malloc(sizeof(HIDP_CAPS));
+        if (info->pCaps == nullptr) {
+            info->pCaps = (HIDP_CAPS*)malloc(sizeof(HIDP_CAPS));
         }
-        HidP_GetCaps(info->pPreparsedData, info->caps);
+        HidP_GetCaps(info->ptrPreparsedData, info->pCaps);
 
-        USHORT valCapsLen;
-        if (info->valCaps == nullptr) {
-            valCapsLen = info->caps->NumberInputValueCaps; // 17
-            info->valCaps = (HIDP_VALUE_CAPS*)malloc(sizeof(HIDP_VALUE_CAPS) * valCapsLen);
+        USHORT pValCapsLen;
+        if (info->pValCaps == nullptr) {
+            pValCapsLen = info->pCaps->NumberInputValueCaps; // 17
+            info->pValCaps = (HIDP_VALUE_CAPS*)malloc(sizeof(HIDP_VALUE_CAPS) * pValCapsLen);
         }
-        HidP_GetValueCaps(HidP_Input, info->valCaps, &valCapsLen, info->pPreparsedData);
+        HidP_GetValueCaps(HidP_Input, info->pValCaps, &pValCapsLen, info->ptrPreparsedData);
 
-        USHORT buttonCapsLen;
-        if (info->buttonCaps == nullptr) {
-            buttonCapsLen = info->caps->NumberInputButtonCaps; // 11
-            info->buttonCaps = (HIDP_BUTTON_CAPS*)malloc(sizeof(HIDP_BUTTON_CAPS) * buttonCapsLen);
+        USHORT pButtopnCapsLen;
+        if (info->pButtopnCaps == nullptr) {
+            pButtopnCapsLen = info->pCaps->NumberInputButtonCaps; // 11
+            info->pButtopnCaps = (HIDP_BUTTON_CAPS*)malloc(sizeof(HIDP_BUTTON_CAPS) * pButtopnCapsLen);
         }
-        HidP_GetButtonCaps(HidP_Input, info->buttonCaps, &buttonCapsLen, info->pPreparsedData);
+        HidP_GetButtonCaps(HidP_Input, info->pButtopnCaps, &pButtopnCapsLen, info->ptrPreparsedData);
 
         ULONG linkNodeNumber;
-        if (info->linkNodes == nullptr) {
-            linkNodeNumber = info->caps->NumberLinkCollectionNodes; // 6
-            info->linkNodes = (HIDP_LINK_COLLECTION_NODE*)malloc(sizeof(HIDP_LINK_COLLECTION_NODE) * linkNodeNumber);
+        if (info->pLinkCollection == nullptr) {
+            linkNodeNumber = info->pCaps->NumberLinkCollectionNodes; // 6
+            info->pLinkCollection = (HIDP_LINK_COLLECTION_NODE*)malloc(sizeof(HIDP_LINK_COLLECTION_NODE) * linkNodeNumber);
         }
-        HidP_GetLinkCollectionNodes(info->linkNodes, &linkNodeNumber, info->pPreparsedData);
-
-
+        HidP_GetLinkCollectionNodes(info->pLinkCollection, &linkNodeNumber, info->ptrPreparsedData);
     }
 }
 
-void win32_getUsageValue_stausValue(NTSTATUS status) {
+int Win32_getRawData(LPARAM lParam){
+    // allocat buffer if not allocated else reuse that
+
+    UINT size;
+    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+    char return_value = 0;
+
+    if (size > prevRawInputSize ) { // just in case size of raw input changed (for dynamic touch pad)
+        RAWINPUT* new_globalRawInput = (RAWINPUT*)realloc(globalRawInput, size);
+        if(new_globalRawInput != nullptr)
+            globalRawInput = new_globalRawInput;
+        return_value = 1;
+        prevRawInputSize = size;
+    }
+
+    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (BYTE*)globalRawInput, &size, sizeof(RAWINPUTHEADER));
+    return return_value;
+}
+
+void win32_getUsageValue_staus(NTSTATUS status) {
     printf("\033[1;31m");
     switch (status) {
     case HIDP_STATUS_SUCCESS: printf("SUCCESS"); break;
@@ -212,31 +227,7 @@ void win32_getUsageValue_stausValue(NTSTATUS status) {
     printf("\033[0m \n");
 }
 
-int Win32_getRawData(RAWINPUT* rawData, LPARAM lParam){
-    // allocat buffer if not allocated else reuse that
-
-    UINT size;
-    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-    char return_value = 0;
-
-    if (size > prevRawInputSize && globalRawInput != nullptr) { // just in case size of raw input changed (for dynamic touch pad)
-        RAWINPUT* new_globalRawInput = (RAWINPUT*)realloc(globalRawInput, size);
-        if(new_globalRawInput != nullptr)
-            globalRawInput = new_globalRawInput;
-        prevRawInputSize = size;
-    }
-    if(globalRawInput == nullptr && size > 0){
-        globalRawInput = (RAWINPUT*)malloc(size);
-        return_value = 1;
-    }
-
-    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (BYTE*)globalRawInput, &size, sizeof(RAWINPUTHEADER));
-    return return_value;
-}
-
-
 void win32_printTouchpadData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw) {
-    NTSTATUS s1, s2;
 
     char* report = (char*)raw->data.hid.bRawData;
     ULONG reportLen = raw->data.hid.dwSizeHid;
@@ -253,41 +244,51 @@ void win32_printTouchpadData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw) 
         report,
         reportLen
     );
-    ULONG button_flag = 0;
-    HidP_GetUsageValue(
+
+    USAGE buttonUsageList[1];
+    ULONG buttonUsageLength = 1;
+    USHORT button_flag = 9999;
+    HidP_GetUsages(
         HidP_Input,
-        UP_BUTTON,
-        0,
-        U_BUTTON,
-        &button_flag,
+        UP_BUTTON,          // usage page 0x09
+        0,                  // link collection 0
+        buttonUsageList,
+        &buttonUsageLength,
         preparsedData,
         report,
         reportLen
     );
 
+    button_flag = (buttonUsageLength > 0 && buttonUsageList[0] == U_BUTTON) ? 1 : 0;
+
     printf("-------------------------------------------------\n");
     printf("Contact Count : %lu\n", contactCount);
-    printf("button flag : %d\n\n", button_flag ? 1 : 0);
+    printf("button flag : %hu\n\n", button_flag);
 
 
     // Header with large spacing
     printf("Finger        Tip        Confidence        ID        X              Y\n");
 
     // Iterate Fingers
-    for (ULONG link = 1; link <= globalInputReportInfo.caps->NumberLinkCollectionNodes - 1; link++)
+    for (ULONG link = 1; link <= globalInputReportInfo.pCaps->NumberLinkCollectionNodes - 1; link++)
     {
-        ULONG tip = 9999;
-        ULONG conf = 9999;
+        USHORT tip = 0;
+        USHORT conf = 0;
         ULONG id = 9999;
         ULONG x = 9999;
         ULONG y = 9999;
 
-        s1 = HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, link, U_FINGER_TIP,
-            &tip, preparsedData, report, reportLen);
+        USAGE usageList[2];
+        ULONG usageLength = 2;
 
-        s2 = HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, link, U_FINGER_CONFIDENCE,
-            &conf, preparsedData, report, reportLen);
+        // for buttons:
+        HidP_GetUsages(HidP_Input, UP_DIGITIZER, link, usageList, &usageLength,
+             preparsedData, report, reportLen);
 
+        if (usageList[0] == U_FINGER_TIP)        tip = 1;
+        if (usageList[1] == U_FINGER_CONFIDENCE) conf = 1;
+
+        // for usage values:
         HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, link, U_FINGER_ID,
             &id, preparsedData, report, reportLen);
 
@@ -297,12 +298,9 @@ void win32_printTouchpadData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw) 
         HidP_GetUsageValue(HidP_Input, UP_GENERIC_DESKTOP, link, U_FINGER_Y,
             &y, preparsedData, report, reportLen);
 
-        printf("F%-2lu          %-3lu        %-10lu        %-3lu       %-10lu     %-10lu\n",
-                link, tip, conf, id, x, y);
+        printf("F%-2lu          %-3hu        %-10hu        %-3lu       %-10lu     %-10lu\n",
+            link, tip, conf, id, x, y);
     }
-    win32_getUsageValue_stausValue(s1);
-    win32_getUsageValue_stausValue(s2);
-
 }
 
 
@@ -350,39 +348,12 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
         }break;
 
         case WM_INPUT: {
-            if (Win32_getRawData(globalRawInput, lParam) && globalInputReportInfo.deviceHandle == nullptr) {
-                    globalInputReportInfo.deviceHandle = globalRawInput->header.hDevice;
-                    Win32_getInputReportInfo(&globalInputReportInfo);
+            if (Win32_getRawData(lParam) && globalInputReportInfo.deviceHandle == nullptr) {
+                globalInputReportInfo.deviceHandle = globalRawInput->header.hDevice;
+                Win32_getInputReportInfo(&globalInputReportInfo);
             }
 
-            /*     ------------     */
-
-            // long scaled_val = -999;
-            // HidP_GetScaledUsageValue(HidP_Input, UP_GENERIC_DESKTOP, 1, U_FINGER_X,
-            //                          &scaled_val, globalInputReportInfo.pPreparsedData, (char*)globalRawInput->data.hid.bRawData,
-            //                          globalRawInput->data.hid.dwSizeHid);
-
-            // ULONG val = 999;
-            // HidP_GetUsageValue(HidP_Input, UP_GENERIC_DESKTOP, 1, U_FINGER_X,
-            //     &val, globalInputReportInfo.pPreparsedData,
-            //     (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
-
-            // printf("scaled val: %d \t val: %lu \n", (int)scaled_val, val);
-
-
-            // win32_printTouchpadData(globalInputReportInfo.pPreparsedData, globalRawInput);
-
-            ULONG tip = 0;
-            ULONG conf = 0;
-
-            HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, 1, U_FINGER_TIP, &tip,
-                globalInputReportInfo.pPreparsedData, (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
-
-            HidP_GetUsageValue(HidP_Input, UP_DIGITIZER, 1, U_FINGER_CONFIDENCE, &tip,
-                globalInputReportInfo.pPreparsedData, (char*)globalRawInput->data.hid.bRawData, globalRawInput->data.hid.dwSizeHid);
-
-            printf("tip : %lu \t conf : %lu\n", tip ? 1 : 0, conf ? 1 : 0);
-            /*     ------------     */
+            win32_printTouchpadData(globalInputReportInfo.ptrPreparsedData, globalRawInput);
 
 
             return DefWindowProc(window, message, wParam, lParam);
@@ -458,6 +429,27 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
             win32_resizeDIBSection(&globalBackBuffer, 200, 200);
             globalRunning = true;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             while(globalRunning){
                 win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
 
@@ -486,9 +478,9 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
 
 
     free(globalRawInput);
-    free(globalInputReportInfo.pPreparsedData);
-    free(globalInputReportInfo.linkNodes);
-    free(globalInputReportInfo.caps);
-    free(globalInputReportInfo.valCaps);
-    free(globalInputReportInfo.buttonCaps);
+    free(globalInputReportInfo.ptrPreparsedData);
+    free(globalInputReportInfo.pLinkCollection);
+    free(globalInputReportInfo.pCaps);
+    free(globalInputReportInfo.pValCaps);
+    free(globalInputReportInfo.pButtopnCaps);
 }
