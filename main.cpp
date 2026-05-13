@@ -334,16 +334,9 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
         case WM_KEYDOWN:
         case WM_KEYUP:
         {
-            // wparam : which key was pressed
-            // lparam : additional info about the key press
-
             u32 VKCode = (u32)wParam;
             bool wasPressed = (lParam & (1 << 30)) != 0;
             bool isPressed = (lParam & (1 << 31)) == 0;
-
-            // bool altKeyWasDown = (lParam & (1 << 29)) != 0;
-            // if (altKeyWasDown && (VKCode == VK_F4)) { DestroyWindow(window); }
-            //}
             return DefWindowProc(window, message, wParam, lParam);
         }break;
 
@@ -428,27 +421,6 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
             HDC deviceContext = GetDC(window);
             win32_resizeDIBSection(&globalBackBuffer, 200, 200);
             globalRunning = true;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
             while(globalRunning){
                 win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
