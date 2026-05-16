@@ -14,8 +14,7 @@ static Win32_window_dimension win32_getWindowDimensions(HWND window) {
 }
 
 
-LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
-
+static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_PAINT: {
 
@@ -52,7 +51,8 @@ LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wPar
             Win32_getInputReportInfo(&globalInputReportInfo);
         }
 
-        win32_printTouchpadData(globalInputReportInfo.ptrPreparsedData, globalRawInput);
+        //win32_printTouchpadData(globalInputReportInfo.ptrPreparsedData, globalRawInput);
+        win32_getTouchPadInfoFile(&globalInputReportInfo);
 
 
         return DefWindowProc(window, message, wParam, lParam);

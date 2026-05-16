@@ -1,9 +1,9 @@
 //! ===================================================================    TODO    =============================================================
 /*
-    * 3) find a proper way to store data
+    * 1) write a function to write all the touch pad capabilities in a file
 
+    * 3) find a proper way to store data
     * 4) function to know type of device( dynamic, static, hybride)
-    * 5) function to update all the data
 
 */
 //! ============================================================================================================================================
@@ -34,6 +34,11 @@ typedef long NTSTATUS;
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "Setupapi.lib")
 
+
+// ===================  defines ==================
+#define force_Inline __forceinline
+
+// =================  typedef  =================
 typedef int8_t         i8;
 typedef int16_t        i16;
 typedef int32_t        i32;
@@ -47,12 +52,11 @@ typedef float          f32;
 typedef double         f64;
 
 //====================  STRUCT  =====================
-
 struct Win32_InputReportInfo {
     PHIDP_PREPARSED_DATA ptrPreparsedData;
     HIDP_CAPS* pCaps;
     HIDP_VALUE_CAPS* pValCaps;
-    HIDP_BUTTON_CAPS* pButtopnCaps;
+    HIDP_BUTTON_CAPS* pButtonCaps;
     HIDP_LINK_COLLECTION_NODE* pLinkCollection;
 
     HANDLE deviceHandle;
@@ -71,8 +75,8 @@ struct Win32_window_dimension {
     int width;
     int height;
 };
-// ==================================================
 
+// ====================  global variable  ====================
 bool globalRunning = false;
 static Win32_offscrean_buffer globalBackBuffer;
 static Win32_InputReportInfo globalInputReportInfo;
@@ -143,11 +147,12 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
         }else{}
     }else{}
 
+
     free(globalRawInput);
     free(globalInputReportInfo.ptrPreparsedData);
     free(globalInputReportInfo.pLinkCollection);
     free(globalInputReportInfo.pCaps);
     free(globalInputReportInfo.pValCaps);
-    free(globalInputReportInfo.pButtopnCaps);
+    free(globalInputReportInfo.pButtonCaps);
 }
 

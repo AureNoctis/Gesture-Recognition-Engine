@@ -2,7 +2,7 @@
 #define _TOUCHPAD_TEST_
 
 
-void win32_printTouchpadData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw) {
+static void win32_printTouchpadData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw) {
 
     i8* report = (i8*)raw->data.hid.bRawData;
     u32 reportLen = raw->data.hid.dwSizeHid;
