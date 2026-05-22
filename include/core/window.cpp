@@ -2,6 +2,12 @@
 #define _WINDOW_
 
 
+#include "utils/declaration.h"
+#include "utils/usage.h"
+
+extern Win32_offscrean_buffer globalBackBuffer;
+extern Win32_InputReportInfo globalInputReportInfo;
+extern RAWINPUT* globalRawInput;
 
 static Win32_window_dimension win32_getWindowDimensions(HWND window) {
     Win32_window_dimension dimension;
@@ -51,9 +57,10 @@ static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPAR
             Win32_getInputReportInfo(&globalInputReportInfo);
         }
 
-        //win32_printTouchpadData(globalInputReportInfo.ptrPreparsedData, globalRawInput);
-        win32_getTouchPadInfoFile(&globalInputReportInfo);
+        win32_getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
 
+        win32_printTouchpadData(finger_data, t_state);
+        // win32_getTouchPadInfoFile(&globalInputReportInfo);
 
         return DefWindowProc(window, message, wParam, lParam);
     } break;

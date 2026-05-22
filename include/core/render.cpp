@@ -1,6 +1,11 @@
 #ifndef _RENDER_
 #define _RENDER_
 
+#include "utils/declaration.h"
+#include "utils/usage.h"
+
+
+
 static void win32_updateWindow(HDC deviceContext, int width, int height, Win32_offscrean_buffer* buffer) {
 
     StretchDIBits(deviceContext,

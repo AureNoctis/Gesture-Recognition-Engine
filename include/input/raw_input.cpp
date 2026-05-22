@@ -1,6 +1,14 @@
 #ifndef _RAW_INPUT_
 #define _RAW_INPUT_
 
+#include "utils/declaration.h"
+#include "utils/usage.h"
+
+
+extern Win32_offscrean_buffer globalBackBuffer;
+extern Win32_InputReportInfo globalInputReportInfo;
+extern RAWINPUT* globalRawInput;
+
 
 static void Win32_getInputReportInfo(Win32_InputReportInfo* info) {
     // allocat buffer if not allocated else reuse that

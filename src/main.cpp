@@ -8,16 +8,13 @@
 */
 //! ============================================================================================================================================
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
 // C/C++ Standard Library
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 // Windows Basics
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
 // Fix for hidpi.h (It needs NTSTATUS defined)
@@ -27,7 +24,10 @@ typedef long NTSTATUS;
 #include <hidsdi.h>
 #include <SetupAPI.h>
 
+// Custom headers
 #include "utils/usage.h"
+#include "utils/declaration.h"
+
 
 #pragma comment(lib, "hid.lib")
 #pragma comment(lib, "User32.lib")
@@ -35,52 +35,13 @@ typedef long NTSTATUS;
 #pragma comment(lib, "Setupapi.lib")
 
 
-// ===================  defines ==================
-#define force_Inline __forceinline
-
-// =================  typedef  =================
-typedef int8_t         i8;
-typedef int16_t        i16;
-typedef int32_t        i32;
-typedef int64_t        i64;
-typedef uint8_t        u8;
-typedef uint16_t       u16;
-typedef uint32_t       u32;
-typedef uint64_t       u64;
-
-typedef float          f32;
-typedef double         f64;
-
-//====================  STRUCT  =====================
-struct Win32_InputReportInfo {
-    PHIDP_PREPARSED_DATA ptrPreparsedData;
-    HIDP_CAPS* pCaps;
-    HIDP_VALUE_CAPS* pValCaps;
-    HIDP_BUTTON_CAPS* pButtonCaps;
-    HIDP_LINK_COLLECTION_NODE* pLinkCollection;
-
-    HANDLE deviceHandle;
-};
-
-struct Win32_offscrean_buffer {
-    BITMAPINFO info;													// This is you telling Windows the "Rules" of your DIB
-    void* memory;														// A raw pointer for you to touch the pixels directly
-    int width;
-    int height;
-    int bytesPerPixel = 4;
-    int pitch;															// gap between tow rows
-};
-
-struct Win32_window_dimension {
-    int width;
-    int height;
-};
-
 // ====================  global variable  ====================
-bool globalRunning = false;
+static bool globalRunning = false;
 static Win32_offscrean_buffer globalBackBuffer;
 static Win32_InputReportInfo globalInputReportInfo;
 static RAWINPUT* globalRawInput;
+static Finger finger_data[5];
+static TouchPad_state t_state;
 
 
 #include "core/render.cpp"

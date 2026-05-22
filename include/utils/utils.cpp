@@ -1,6 +1,8 @@
 #ifndef _UTILS_
 #define _UTILS_
 
+#include <stdio.h>
+#include <Windows.h>
 
 static void summonConsole(){
     if (AllocConsole()) {
