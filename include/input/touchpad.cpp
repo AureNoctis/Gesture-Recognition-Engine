@@ -25,7 +25,7 @@ static void win32_printTouchpadData(Finger* finger_data, TouchPad_state t_state)
     printf("Finger        Tip        Confidence        ID        X              Y\n");
 
     for(i32 i = 0; i < 5; i++){
-        printf("F%-2i          %-3hu        %-10hu        %-3lu       %-10lu     %-10lu\n",
+        printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n",
                 i+1,
                 finger_data[i].tip_switch,
                 finger_data[i].confidence,
@@ -48,7 +48,7 @@ static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* ra
     u32 data_length = 32;
     HidP_GetData(HidP_Input, data, (unsigned long*)&data_length, preparsedData, (char*)report, reportLen);
 
-    for(i32 i = 0; i < data_length; i++){
+    for(u32 i = 0; i < data_length; i++){
         switch(data[i].DataIndex) {
         // touchpad
         case 0:  { t_state[0].touchPadButton = data[i].On;       } break;

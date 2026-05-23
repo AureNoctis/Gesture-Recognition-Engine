@@ -64,7 +64,7 @@ static int Win32_getRawData(LPARAM lParam) {
     // return_value( gets feeded to if condtion ) will decide if win32_getInputReportInfo should be called or not
 }
 
-
+[[maybe_unused]]
 static void win32_getUsageValue_status(NTSTATUS status) {
     printf("\033[1;31m");
     switch (status) {
@@ -229,27 +229,27 @@ static void __win32_getTouchPadInfoFile(Win32_InputReportInfo* info){
     fprintf(file, "\n");
 
     fprintf(file, "%-25s", "UnitsExp");
-    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12u", pValueCaps[i].UnitsExp);
+    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12lu", pValueCaps[i].UnitsExp);
     fprintf(file, "\n");
 
     fprintf(file, "%-25s", "Units");
-    for (int i = 0; i < numValCaps; i++) fprintf(file, "0x%-10X", pValueCaps[i].Units);
+    for (int i = 0; i < numValCaps; i++) fprintf(file, "0x%-10lX", pValueCaps[i].Units);
     fprintf(file, "\n");
 
     fprintf(file, "%-25s", "LogicalMin");
-    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12d", pValueCaps[i].LogicalMin);
+    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12ld", pValueCaps[i].LogicalMin);
     fprintf(file, "\n");
 
     fprintf(file, "%-25s", "LogicalMax");
-    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12d", pValueCaps[i].LogicalMax);
+    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12ld", pValueCaps[i].LogicalMax);
     fprintf(file, "\n");
 
     fprintf(file, "%-25s", "PhysicalMin");
-    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12d", pValueCaps[i].PhysicalMin);
+    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12ld", pValueCaps[i].PhysicalMin);
     fprintf(file, "\n");
 
     fprintf(file, "%-25s", "PhysicalMax");
-    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12d", pValueCaps[i].PhysicalMax);
+    for (int i = 0; i < numValCaps; i++) fprintf(file, "%-12ld", pValueCaps[i].PhysicalMax);
     fprintf(file, "\n");
 
     fprintf(file, "%-25s", "Range.UsageMin");

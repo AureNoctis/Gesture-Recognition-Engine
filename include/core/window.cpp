@@ -9,6 +9,9 @@ extern Win32_offscrean_buffer globalBackBuffer;
 extern Win32_InputReportInfo globalInputReportInfo;
 extern RAWINPUT* globalRawInput;
 
+extern Finger finger_data[5];
+extern TouchPad_state t_state;
+
 static Win32_window_dimension win32_getWindowDimensions(HWND window) {
     Win32_window_dimension dimension;
 
@@ -39,17 +42,6 @@ static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPAR
         PostQuitMessage(0); // put quit message in message loop
         return 0;
     } break;
-
-    case WM_SYSKEYDOWN:
-    case WM_SYSKEYUP:
-    case WM_KEYDOWN:
-    case WM_KEYUP:
-    {
-        u32 VKCode = (u32)wParam;
-        bool wasPressed = (lParam & (1 << 30)) != 0;
-        bool isPressed = (lParam & (1 << 31)) == 0;
-        return DefWindowProc(window, message, wParam, lParam);
-    }break;
 
     case WM_INPUT: {
         if (Win32_getRawData(lParam)) {

@@ -9,7 +9,6 @@
 //! ============================================================================================================================================
 
 // C/C++ Standard Library
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -25,7 +24,6 @@ typedef long NTSTATUS;
 #include <SetupAPI.h>
 
 // Custom headers
-#include "utils/usage.h"
 #include "utils/declaration.h"
 
 
@@ -58,54 +56,55 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
     (void)cmdShow;
 
     summonConsole();
+    WNDCLASS windowClass = {};
+    windowClass.style = CS_VREDRAW | CS_HREDRAW;
+    windowClass.lpfnWndProc = win32_mainWindowCallback;
+    windowClass.hInstance = instance;
+    windowClass.lpszClassName = L"G.R.E";
 
-    WNDCLASS windowClass = {
-        .style = CS_VREDRAW | CS_HREDRAW,
-        .lpfnWndProc = win32_mainWindowCallback,
-        .hInstance = instance,
-        .lpszClassName = L"G.R.E"
-    };
+    if (RegisterClass(&windowClass)) {
+      HWND window = CreateWindowEx(
+          0, windowClass.lpszClassName, L"gesture recognition engine",
+          WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 200,
+          200, 0, 0, instance, 0);
+      if (window) {
 
-    if(RegisterClass(&windowClass)){
-        HWND window = CreateWindowEx(0, windowClass.lpszClassName, L"gesture recognition engine", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                                     CW_USEDEFAULT, CW_USEDEFAULT, 200,
-                                     200, 0, 0, instance, 0);
-        if(window){
+        RAWINPUTDEVICE rid[1];
 
-            RAWINPUTDEVICE rid[1];
+        rid[0].usUsagePage = 0x000D;
+        rid[0].usUsage = 0x0005;
+        rid[0].dwFlags = RIDEV_INPUTSINK;
+        rid[0].hwndTarget = window;
 
-            rid[0].usUsagePage = 0x000D;
-            rid[0].usUsage = 0x0005;
-            rid[0].dwFlags = RIDEV_INPUTSINK;
-            rid[0].hwndTarget = window;
+        RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
 
-            RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
+        HDC deviceContext = GetDC(window);
+        win32_resizeDIBSection(&globalBackBuffer, 200, 200);
+        globalRunning = true;
 
-            HDC deviceContext = GetDC(window);
-            win32_resizeDIBSection(&globalBackBuffer, 200, 200);
-            globalRunning = true;
+        while (globalRunning) {
+          win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
 
-            while(globalRunning){
-                win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
+          MSG message;
+          while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
+            if (message.message == WM_QUIT)
+              globalRunning = false;
 
-                MSG message;
-                while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
-                    if(message.message == WM_QUIT)
-                        globalRunning = false;
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+          }
+          //! WM_QUIT:
+          // It is NOT sent to your window procedure
+          // It is NOT dispatched via DispatchMessage
+          // It is only seen by GetMessage / PeekMessage
 
-                    TranslateMessage(&message);
-                    DispatchMessage(&message);
-                }
-                //! WM_QUIT:
-                // It is NOT sent to your window procedure
-                // It is NOT dispatched via DispatchMessage
-                // It is only seen by GetMessage / PeekMessage
-
-                Win32_window_dimension dimension = win32_getWindowDimensions(window);
-                win32_updateWindow(deviceContext, dimension.width, dimension.height, &globalBackBuffer);
-            }
-            ReleaseDC(window, deviceContext);
-        }else{}
+          Win32_window_dimension dimension = win32_getWindowDimensions(window);
+          win32_updateWindow(deviceContext, dimension.width, dimension.height,
+                             &globalBackBuffer);
+        }
+        ReleaseDC(window, deviceContext);
+      } else {
+      }
     }else{}
 
 

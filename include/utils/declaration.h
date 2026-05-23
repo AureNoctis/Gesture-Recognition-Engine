@@ -78,29 +78,32 @@ struct TouchPad_state{
 
 // ===================  function declaration  ==================
 
-static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw,
-    Finger* finger_data, TouchPad_state* t_state);
+static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData,
+                                RAWINPUT *raw, Finger *finger_data,
+                                TouchPad_state *t_state);
 
-static void win32_printTouchpadData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw);
-
-static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
+static void win32_printTouchpadData(Finger *finger_data,
+                                    TouchPad_state t_state);
+static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message,
+                                                 WPARAM wParam, LPARAM lParam);
 
 static Win32_window_dimension win32_getWindowDimensions(HWND window);
 
-force_Inline static void win32_getTouchPadInfoFile(Win32_InputReportInfo* info);
+force_Inline static void win32_getTouchPadInfoFile(Win32_InputReportInfo *info);
 
 static void win32_getUsageValue_status(NTSTATUS status);
 
 static int Win32_getRawData(LPARAM lParam);
 
-static void Win32_getInputReportInfo(Win32_InputReportInfo* info);
+static void Win32_getInputReportInfo(Win32_InputReportInfo *info);
 
-static void win32_renderWeirdGradiant(Win32_offscrean_buffer* buffer, int blueOffset, int greenOffset);
+static void win32_renderWeirdGradiant(Win32_offscrean_buffer *buffer,
+                                      int blueOffset, int greenOffset);
 
-static void win32_resizeDIBSection(Win32_offscrean_buffer* buffer, int width, int height);
+static void win32_resizeDIBSection(Win32_offscrean_buffer *buffer, int width,
+                                   int height);
 
-static void win32_updateWindow(HDC deviceContext, int width, int height, Win32_offscrean_buffer* buffer);
-
-
+static void win32_updateWindow(HDC deviceContext, int width, int height,
+                               Win32_offscrean_buffer *buffer);
 
 #endif
