@@ -9,13 +9,13 @@ extern Win32_offscrean_buffer globalBackBuffer;
 extern Win32_InputReportInfo globalInputReportInfo;
 extern RAWINPUT* globalRawInput;
 
-
+[[maybe_unused]]
 static void win32_printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
 
     printf(
         "---------------------------------------------------\n"
         "contact count  :  %hhu \n"
-        "scan time      :  %hu \n"
+        "scan time      :  %hu us\n"
         "button         :  %hhu \n",
         t_state.contactCount,
         t_state.scanTime,

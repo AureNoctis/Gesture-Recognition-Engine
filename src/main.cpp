@@ -1,9 +1,5 @@
 //! ===================================================================    TODO    =============================================================
 /*
-    * 1) write a function to write all the touch pad capabilities in a file
-
-    * 3) find a proper way to store data
-    * 4) function to know type of device( dynamic, static, hybride)
 
 */
 //! ============================================================================================================================================
@@ -36,7 +32,9 @@ typedef long NTSTATUS;
 // ====================  global variable  ====================
 static bool globalRunning = false;
 static Win32_offscrean_buffer globalBackBuffer;
+
 static Win32_InputReportInfo globalInputReportInfo;
+
 static RAWINPUT* globalRawInput;
 static Finger finger_data[5];
 static TouchPad_state t_state;

@@ -21,6 +21,11 @@ typedef long NTSTATUS;
 #define force_Inline __forceinline
 
 
+#define delta_t 70          // manually got this data for touchpad :) -> 70 us
+#define frequency 143.85
+#define max_samples 72      // size of buffer 72 samples ~0.5 sec
+
+
 // ===================  typedefs  ==================
 
 typedef int8_t         i8;
@@ -35,6 +40,16 @@ typedef uint64_t       u64;
 typedef float          f32;
 typedef double         f64;
 
+
+// ===================  enum  ===================
+enum Finger_index{
+    F1 = 0,
+    F2,
+    F3,
+    F4,
+    F5,
+    TOTAL_FINGERS
+};
 
 // ===================  structs  ==================
 
@@ -75,6 +90,18 @@ struct TouchPad_state{
     u8 touchPadButton;
 };
 
+struct TouchHistory{
+    Finger *history[TOTAL_FINGERS];
+    u8 contact_count;
+    u8 index_array[TOTAL_FINGERS];
+    u8 data_filled[TOTAL_FINGERS];
+};
+
+/*
+    if data_filled[finger] == max_sample ----> long_gesture(~0.5 sec) (e.g. hold, ...)
+    data_filling index in heap buffer will be obtained from "FINGER.ID"
+
+*/
 
 // ===================  function declaration  ==================
 

@@ -48,11 +48,12 @@ static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPAR
             globalInputReportInfo.deviceHandle = globalRawInput->header.hDevice;
             Win32_getInputReportInfo(&globalInputReportInfo);
         }
+        static u64 counter = 1;
 
         win32_getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
+        printf("%llu\n", counter++);
 
-        win32_printTouchpadData(finger_data, t_state);
-        // win32_getTouchPadInfoFile(&globalInputReportInfo);
+        // win32_printTouchpadData(finger_data, t_state);
 
         return DefWindowProc(window, message, wParam, lParam);
     } break;
