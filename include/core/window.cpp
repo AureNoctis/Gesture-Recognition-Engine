@@ -12,6 +12,10 @@ extern RAWINPUT* globalRawInput;
 extern Finger finger_data[5];
 extern TouchPad_state t_state;
 
+extern bool gesture_start;
+extern bool gesture_end;
+
+
 static Win32_window_dimension win32_getWindowDimensions(HWND window) {
     Win32_window_dimension dimension;
 
@@ -48,13 +52,19 @@ static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message, WPAR
             globalInputReportInfo.deviceHandle = globalRawInput->header.hDevice;
             Win32_getInputReportInfo(&globalInputReportInfo);
         }
-        static u64 counter = 1;
+
+        // fill_payload()
+        // fill_events_in_event_buffer(find_gesture(payload))  --> for all fingers connected
 
         win32_getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
-        printf("%llu\n", counter++);
+
+        if(gesture_start == true)
+            printf("start\n");
+        if(gesture_end == true)
+            printf("end\n");
+
 
         // win32_printTouchpadData(finger_data, t_state);
-
         return DefWindowProc(window, message, wParam, lParam);
     } break;
 

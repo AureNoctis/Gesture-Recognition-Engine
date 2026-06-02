@@ -9,6 +9,10 @@ extern Win32_offscrean_buffer globalBackBuffer;
 extern Win32_InputReportInfo globalInputReportInfo;
 extern RAWINPUT* globalRawInput;
 
+extern bool gesture_start;
+extern bool gesture_end;
+
+
 [[maybe_unused]]
 static void win32_printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
 
@@ -47,6 +51,7 @@ static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* ra
     HIDP_DATA data[32];
     u32 data_length = 32;
     HidP_GetData(HidP_Input, data, (unsigned long*)&data_length, preparsedData, (char*)report, reportLen);
+
 
     for(u32 i = 0; i < data_length; i++){
         switch(data[i].DataIndex) {
@@ -96,6 +101,10 @@ static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* ra
 
         }
     }
+
+    gesture_end = !(bool)((finger_data[0].tip_switch | finger_data[1].tip_switch | finger_data[2].tip_switch |
+                            finger_data[3].tip_switch | finger_data[4].tip_switch));
+    gesture_start = !gesture_end;
 }
 
 #endif

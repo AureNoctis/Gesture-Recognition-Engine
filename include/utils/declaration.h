@@ -23,8 +23,27 @@ typedef long NTSTATUS;
 
 #define delta_t 70          // manually got this data for touchpad :) -> 70 us
 #define frequency 143.85
-#define max_samples 72      // size of buffer 72 samples ~0.5 sec
 
+// i will ignore the values with 0
+
+#define swipe_min_travel   300
+#define swipe_min_time     0
+#define swipe_max_time     3000
+
+#define move_min_travel   50
+#define move_min_time     0
+#define move_max_time     0
+
+#define tap_max_travel     5
+#define tap_min_time       100
+#define tap_max_time       4999
+
+#define hold_max_travel    10
+#define hold_min_time      5000
+#define hold_max_time      20000
+
+#define _do_
+#define _then_
 
 // ===================  typedefs  ==================
 
@@ -51,6 +70,12 @@ enum Finger_index{
     TOTAL_FINGERS
 };
 
+enum Gesture_type : u8{
+    SWIPE = 0,
+    MOVE,
+    TAP,
+    HOLD
+};
 // ===================  structs  ==================
 
 struct Win32_InputReportInfo {
@@ -90,18 +115,33 @@ struct TouchPad_state{
     u8 touchPadButton;
 };
 
-struct TouchHistory{
-    Finger *history[TOTAL_FINGERS];
-    u8 contact_count;
-    u8 index_array[TOTAL_FINGERS];
-    u8 data_filled[TOTAL_FINGERS];
+struct Gesture_report{
+    Gesture_type type;
+    u16 time_elapsed;
+    union{
+        struct{
+            u16 x;
+            u16 y;
+        };
+        struct{
+            u16 speed;
+            u16 distance_traveled;
+        };
+    };
 };
 
-/*
-    if data_filled[finger] == max_sample ----> long_gesture(~0.5 sec) (e.g. hold, ...)
-    data_filling index in heap buffer will be obtained from "FINGER.ID"
+// struct TouchHistory{
+//     Finger *history[TOTAL_FINGERS];
+//     u8 contact_count;
+//     u8 index_array[TOTAL_FINGERS];
+//     u8 data_filled[TOTAL_FINGERS];
+// };
 
-*/
+// /*
+//     if data_filled[finger] == max_sample ----> long_gesture(~0.5 sec) (e.g. hold, ...)
+//     data_filling index in heap buffer will be obtained from "FINGER.ID"
+
+// */
 
 // ===================  function declaration  ==================
 

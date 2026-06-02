@@ -39,12 +39,17 @@ static RAWINPUT* globalRawInput;
 static Finger finger_data[5];
 static TouchPad_state t_state;
 
+static bool gesture_start = false;
+static bool gesture_end   = false;
+
 
 #include "core/render.cpp"
 #include "input/raw_input.cpp"
 #include "input/touchpad.cpp"
 #include "utils/utils.cpp"
 #include "core/window.cpp"
+
+
 
 
 int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow){
