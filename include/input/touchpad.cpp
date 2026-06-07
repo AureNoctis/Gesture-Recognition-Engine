@@ -5,16 +5,16 @@
 #include "utils/usage.h"
 
 
-extern Win32_offscrean_buffer globalBackBuffer;
-extern Win32_InputReportInfo globalInputReportInfo;
+extern offscrean_buffer globalBackBuffer;
+extern InputReportInfo globalInputReportInfo;
 extern RAWINPUT* globalRawInput;
 
 extern bool gesture_start;
 extern bool gesture_end;
-
+extern int gesture_start_counter;
 
 [[maybe_unused]]
-static void win32_printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
+static void printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
 
     printf(
         "---------------------------------------------------\n"
@@ -39,7 +39,7 @@ static void win32_printTouchpadData(Finger* finger_data, TouchPad_state t_state)
     }
 }
 
-static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw,
+static void getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw,
                                 Finger* finger_data, TouchPad_state* t_state)
 {
     i8* report = (i8*)raw->data.hid.bRawData;
@@ -105,6 +105,11 @@ static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* ra
     gesture_end = !(bool)((finger_data[0].tip_switch | finger_data[1].tip_switch | finger_data[2].tip_switch |
                             finger_data[3].tip_switch | finger_data[4].tip_switch));
     gesture_start = !gesture_end;
+
+}
+
+void getFingerDeltaData(FingerDeltaData* holder){
+// todo: filling the holder
 }
 
 #endif

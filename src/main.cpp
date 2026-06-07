@@ -31,9 +31,9 @@ typedef long NTSTATUS;
 
 // ====================  global variable  ====================
 static bool globalRunning = false;
-static Win32_offscrean_buffer globalBackBuffer;
+static offscrean_buffer globalBackBuffer;
 
-static Win32_InputReportInfo globalInputReportInfo;
+static InputReportInfo globalInputReportInfo;
 
 static RAWINPUT* globalRawInput;
 static Finger finger_data[5];
@@ -41,12 +41,14 @@ static TouchPad_state t_state;
 
 static bool gesture_start = false;
 static bool gesture_end   = false;
+static int gesture_start_counter = 0;
 
 
+#include "utils/Holder.cpp"
+#include "utils/utils.cpp"
 #include "core/render.cpp"
 #include "input/raw_input.cpp"
 #include "input/touchpad.cpp"
-#include "utils/utils.cpp"
 #include "core/window.cpp"
 
 
@@ -61,7 +63,7 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
     summonConsole();
     WNDCLASS windowClass = {};
     windowClass.style = CS_VREDRAW | CS_HREDRAW;
-    windowClass.lpfnWndProc = win32_mainWindowCallback;
+    windowClass.lpfnWndProc = mainWindowCallback;
     windowClass.hInstance = instance;
     windowClass.lpszClassName = L"G.R.E";
 
@@ -82,11 +84,11 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
         RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
 
         HDC deviceContext = GetDC(window);
-        win32_resizeDIBSection(&globalBackBuffer, 200, 200);
+        resizeDIBSection(&globalBackBuffer, 200, 200);
         globalRunning = true;
 
         while (globalRunning) {
-          win32_renderWeirdGradiant(&globalBackBuffer, 0, 0);
+          renderWeirdGradiant(&globalBackBuffer, 0, 0);
 
           MSG message;
           while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
@@ -101,8 +103,8 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
           // It is NOT dispatched via DispatchMessage
           // It is only seen by GetMessage / PeekMessage
 
-          Win32_window_dimension dimension = win32_getWindowDimensions(window);
-          win32_updateWindow(deviceContext, dimension.width, dimension.height,
+          window_dimension dimension = getWindowDimensions(window);
+          updateWindow(deviceContext, dimension.width, dimension.height,
                              &globalBackBuffer);
         }
         ReleaseDC(window, deviceContext);

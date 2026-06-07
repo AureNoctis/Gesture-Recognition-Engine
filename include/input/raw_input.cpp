@@ -5,12 +5,12 @@
 #include "utils/usage.h"
 
 
-extern Win32_offscrean_buffer globalBackBuffer;
-extern Win32_InputReportInfo globalInputReportInfo;
+extern offscrean_buffer globalBackBuffer;
+extern InputReportInfo globalInputReportInfo;
 extern RAWINPUT* globalRawInput;
 
 
-static void Win32_getInputReportInfo(Win32_InputReportInfo* info) {
+static void getInputReportInfo(InputReportInfo* info) {
     // allocat buffer if not allocated else reuse that
 
     u32 pdataSize;
@@ -43,7 +43,7 @@ static void Win32_getInputReportInfo(Win32_InputReportInfo* info) {
 }
 
 
-static int Win32_getRawData(LPARAM lParam) {
+static int getRawData(LPARAM lParam) {
     // allocat buffer if not allocated else reuse that
     static u32 prevRawInputSize = 0;
 
@@ -61,11 +61,11 @@ static int Win32_getRawData(LPARAM lParam) {
 
     GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (u8*)globalRawInput, &size, sizeof(RAWINPUTHEADER));
     return return_value;
-    // return_value( gets feeded to if condtion ) will decide if win32_getInputReportInfo should be called or not
+    // return_value( gets feeded to if condtion ) will decide if getInputReportInfo should be called or not
 }
 
 [[maybe_unused]]
-static void win32_getUsageValue_status(NTSTATUS status) {
+static void getUsageValue_status(NTSTATUS status) {
     printf("\033[1;31m");
     switch (status) {
     case HIDP_STATUS_SUCCESS: printf("SUCCESS"); break;
@@ -79,7 +79,7 @@ static void win32_getUsageValue_status(NTSTATUS status) {
 }
 
 
-static void __win32_getTouchPadInfoFile(Win32_InputReportInfo* info){
+static void __getTouchPadInfoFile(InputReportInfo* info){
     FILE* file = fopen("touchpad_data.txt", "w");
     if(!file){
         printf("file can't be opened\n");
@@ -412,10 +412,10 @@ static void __win32_getTouchPadInfoFile(Win32_InputReportInfo* info){
     fclose(file);
 }
 
-force_Inline static void win32_getTouchPadInfoFile(Win32_InputReportInfo* info){
+force_Inline static void getTouchPadInfoFile(InputReportInfo* info){
     static int flag = 1;
     if(flag){
-        __win32_getTouchPadInfoFile(info);
+        __getTouchPadInfoFile(info);
         flag = 0;
     }
 }

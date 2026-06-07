@@ -78,7 +78,7 @@ enum Gesture_type : u8{
 };
 // ===================  structs  ==================
 
-struct Win32_InputReportInfo {
+struct InputReportInfo {
     PHIDP_PREPARSED_DATA ptrPreparsedData;
     HIDP_CAPS* pCaps;
     HIDP_VALUE_CAPS* pValCaps;
@@ -88,7 +88,7 @@ struct Win32_InputReportInfo {
     HANDLE deviceHandle;
 };
 
-struct Win32_offscrean_buffer {
+struct offscrean_buffer {
     BITMAPINFO info;													// This is you telling Windows the "Rules" of your DIB
     void* memory;														// A raw pointer for you to touch the pixels directly
     int width;
@@ -97,7 +97,7 @@ struct Win32_offscrean_buffer {
     int pitch;															// gap between tow rows
 };
 
-struct Win32_window_dimension {
+struct window_dimension {
     int width;
     int height;
 };
@@ -115,20 +115,34 @@ struct TouchPad_state{
     u8 touchPadButton;
 };
 
-struct Gesture_report{
-    Gesture_type type;
-    u16 time_elapsed;
-    union{
-        struct{
-            u16 x;
-            u16 y;
-        };
-        struct{
-            u16 speed;
-            u16 distance_traveled;
-        };
-    };
+struct FingerDeltaData{
+    u16 startTime; // x10^-4 sec
+    u16 deltaTime;
+
+    u32 xi, yi;
+    u32 xf, yf;
+    u32 xd, yd;
+    u32 distance_traveled;
+
+    bool touchpadButtonPressed;
+    u8 confidence;
+    u8 tip_switch;
 };
+
+// struct Gesture_report{
+//     Gesture_type type;
+//     u16 time_elapsed;
+//     union{
+//         struct{
+//             u16 x;
+//             u16 y;
+//         };
+//         struct{
+//             u16 speed;
+//             u16 distance_traveled;
+//         };
+//     };
+// };
 
 // struct TouchHistory{
 //     Finger *history[TOTAL_FINGERS];
@@ -145,32 +159,36 @@ struct Gesture_report{
 
 // ===================  function declaration  ==================
 
-static void win32_getFingerData(PHIDP_PREPARSED_DATA preparsedData,
+static void getFingerData(PHIDP_PREPARSED_DATA preparsedData,
                                 RAWINPUT *raw, Finger *finger_data,
                                 TouchPad_state *t_state);
 
-static void win32_printTouchpadData(Finger *finger_data,
+static void printTouchpadData(Finger *finger_data,
                                     TouchPad_state t_state);
-static LRESULT CALLBACK win32_mainWindowCallback(HWND window, UINT message,
+static LRESULT CALLBACK mainWindowCallback(HWND window, UINT message,
                                                  WPARAM wParam, LPARAM lParam);
 
-static Win32_window_dimension win32_getWindowDimensions(HWND window);
+static window_dimension getWindowDimensions(HWND window);
 
-force_Inline static void win32_getTouchPadInfoFile(Win32_InputReportInfo *info);
+force_Inline static void getTouchPadInfoFile(InputReportInfo *info);
 
-static void win32_getUsageValue_status(NTSTATUS status);
+static void getUsageValue_status(NTSTATUS status);
 
-static int Win32_getRawData(LPARAM lParam);
+static int getRawData(LPARAM lParam);
 
-static void Win32_getInputReportInfo(Win32_InputReportInfo *info);
+static void getInputReportInfo(InputReportInfo *info);
 
-static void win32_renderWeirdGradiant(Win32_offscrean_buffer *buffer,
+static void renderWeirdGradiant(offscrean_buffer *buffer,
                                       int blueOffset, int greenOffset);
 
-static void win32_resizeDIBSection(Win32_offscrean_buffer *buffer, int width,
+static void resizeDIBSection(offscrean_buffer *buffer, int width,
                                    int height);
 
-static void win32_updateWindow(HDC deviceContext, int width, int height,
-                               Win32_offscrean_buffer *buffer);
+static void updateWindow(HDC deviceContext, int width, int height,
+                               offscrean_buffer *buffer);
+
+static FingerDeltaData* create_holder(u32 data_size, u32 data_count);
+static u32 get_maxContactCount(FingerDeltaData* holder);
+static void free_holder(FingerDeltaData* holder);
 
 #endif
