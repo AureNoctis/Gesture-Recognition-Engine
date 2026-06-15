@@ -159,6 +159,8 @@ struct FingerDeltaData{
 
 // ===================  function declaration  ==================
 
+static void summonConsole();
+
 static void getFingerData(PHIDP_PREPARSED_DATA preparsedData,
                                 RAWINPUT *raw, Finger *finger_data,
                                 TouchPad_state *t_state);
@@ -188,7 +190,7 @@ static void updateWindow(HDC deviceContext, int width, int height,
                                offscrean_buffer *buffer);
 
 static FingerDeltaData* create_holder(u32 data_size, u32 data_count);
-static u32 get_maxContactCount(FingerDeltaData* holder);
+static u32* get_maxContactCount(FingerDeltaData* holder);
 static void free_holder(FingerDeltaData* holder);
 
 #endif

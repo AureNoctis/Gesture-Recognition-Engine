@@ -18,10 +18,10 @@ FingerDeltaData* create_holder(u32 data_size, u32 data_count){
     return (FingerDeltaData*)(ptr + sizeof(u32));
 }
 
-u32 get_maxContactCount(FingerDeltaData* holder){
+u32* get_maxContactCount(FingerDeltaData* holder){
     char* byte = (char*)holder;
     u32* header = (u32*)(byte - sizeof(u32));
-    return *header;
+    return header;
 }
 
 void free_holder(FingerDeltaData* holder){

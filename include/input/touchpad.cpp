@@ -9,6 +9,9 @@ extern offscrean_buffer globalBackBuffer;
 extern InputReportInfo globalInputReportInfo;
 extern RAWINPUT* globalRawInput;
 
+extern Finger finger_data[5];
+extern TouchPad_state t_state;
+
 extern bool gesture_start;
 extern bool gesture_end;
 extern int gesture_start_counter;
@@ -109,7 +112,25 @@ static void getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw,
 }
 
 void getFingerDeltaData(FingerDeltaData* holder){
-// todo: filling the holder
+
+    static Finger gesture_start_data[5];
+    // static Finger gesture_end_data[5]; 
+    // |--> this data is already present in finger_data while the gesture_end is true
+
+    getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
+
+    if(t_state.contactCount > *get_maxContactCount(holder)){
+        *get_maxContactCount(holder) = t_state.contactCount;
+    }
+
+    if(gesture_start_counter == 2){
+        memcpy(gesture_start_data, finger_data, 5 * sizeof(Finger));
+        return;
+    }
+    if(gesture_end){
+        for()
+    }
+
 }
 
 #endif

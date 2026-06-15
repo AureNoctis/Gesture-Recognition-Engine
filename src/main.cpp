@@ -42,24 +42,16 @@ static TouchPad_state t_state;
 static bool gesture_start = false;
 static bool gesture_end   = false;
 static int gesture_start_counter = 0;
+static FingerDeltaData *finger_change_data; // pointer will be assigned from the create_holder function
 
-
-#include "utils/Holder.cpp"
-#include "utils/utils.cpp"
-#include "core/render.cpp"
-#include "input/raw_input.cpp"
-#include "input/touchpad.cpp"
-#include "core/window.cpp"
-
-
-
+// ============================================================
 
 int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow){
 
     (void)prevInstance;
     (void)cmdLine;
     (void)cmdShow;
-
+    
     summonConsole();
     WNDCLASS windowClass = {};
     windowClass.style = CS_VREDRAW | CS_HREDRAW;
@@ -121,3 +113,10 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
     free(globalInputReportInfo.pButtonCaps);
 }
 
+
+#include "utils/Holder.cpp"
+#include "utils/utils.cpp"
+#include "core/render.cpp"
+#include "input/raw_input.cpp"
+#include "input/touchpad.cpp"
+#include "core/window.cpp"
