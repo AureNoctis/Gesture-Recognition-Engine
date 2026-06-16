@@ -124,7 +124,7 @@ struct FingerDeltaData{
     u32 xd, yd;
     u32 distance_traveled;
 
-    bool touchpadButtonPressed;
+    
     u8 confidence;
     u8 tip_switch;
 };

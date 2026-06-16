@@ -3,7 +3,7 @@
 
 #include "utils/declaration.h"
 #include "utils/usage.h"
-
+#include "math.h"
 
 extern offscrean_buffer globalBackBuffer;
 extern InputReportInfo globalInputReportInfo;
@@ -22,7 +22,7 @@ static void printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
     printf(
         "---------------------------------------------------\n"
         "contact count  :  %hhu \n"
-        "scan time      :  %hu us\n"
+        "scan time      :  %hu x10^-4\n"
         "button         :  %hhu \n",
         t_state.contactCount,
         t_state.scanTime,
@@ -114,6 +114,10 @@ static void getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw,
 void getFingerDeltaData(FingerDeltaData* holder){
 
     static Finger gesture_start_data[5];
+    static bool got_gesture_start_data[5];
+
+    static int gesture_start_time[5];
+    static bool got_start_time[5];
     // static Finger gesture_end_data[5]; 
     // |--> this data is already present in finger_data while the gesture_end is true
 
@@ -123,12 +127,44 @@ void getFingerDeltaData(FingerDeltaData* holder){
         *get_maxContactCount(holder) = t_state.contactCount;
     }
 
+    for(int i = 0; i < 5; i++){
+        if(finger_data[i].confidence != 0){
+            if(got_start_time[finger_data[i].id] != true){
+                gesture_start_time[finger_data[i].id] = t_state.scanTime;
+                got_start_time[finger_data[i].id] = true;
+            }            
+            continue;
+        }
+        break;
+    }
+
+
     if(gesture_start_counter == 2){
         memcpy(gesture_start_data, finger_data, 5 * sizeof(Finger));
         return;
     }
     if(gesture_end){
-        for()
+        for(int i = 0; i < 5; i++){
+            holder[i].xi = gesture_start_data[i].x;
+            holder[i].yi = gesture_start_data[i].y;
+            holder[i].xf = finger_data[i].x;
+            holder[i].yf = finger_data[i].y; 
+            holder[i].xd = holder[i].xf - holder[i].xi;             
+            holder[i].yd = holder[i].yf - holder[i].yi;
+
+            holder[i].confidence = gesture_start_data[i].confidence;
+            holder[i].tip_switch = gesture_start_data[i].tip_switch;
+            holder[i].startTime = gesture_start_time[i];
+
+#define Short_max 65536
+            holder[i].deltaTime = (Short_max + t_state.scanTime - gesture_start_time[i]) % Short_max;
+#undef Short_max
+
+            holder[i].distance_traveled = (u32)hypot(holder[i].xd, holder[i].yd);
+        }
+        memset(gesture_start_data, 0, sizeof(gesture_start_data));
+        memset(gesture_start_time, 0, sizeof(gesture_start_time));
+        memset(got_start_time, 0, sizeof(got_start_time));
     }
 
 }

@@ -57,14 +57,14 @@ static LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wPa
         // fill_payload()
         // fill_events_in_event_buffer(find_gesture(payload))  --> for all fingers connected
 
-        // getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
+        getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
 
         if(gesture_start == true) gesture_start_counter++;
 
 
 
 
-        // printTouchpadData(finger_data, t_state);
+        printTouchpadData(finger_data, t_state);
         return DefWindowProc(window, message, wParam, lParam);
     } break;
 
