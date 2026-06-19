@@ -1,6 +1,6 @@
 #ifndef _DECLARATION_H
 #define _DECLARATION_H
-
+  
 // C/C++ Standard Library
 #include <stdio.h>
 #include <stdint.h>
@@ -61,7 +61,7 @@ typedef double         f64;
 
 
 // ===================  enum  ===================
-enum Finger_index{
+enum Finger_index : u8{
     F1 = 0,
     F2,
     F3,
@@ -71,10 +71,17 @@ enum Finger_index{
 };
 
 enum Gesture_type : u8{
-    SWIPE = 0,
+    IDLE = 0,
+    SWIPE,
     MOVE,
     TAP,
-    HOLD
+    HOLD,
+    UNCLEAR
+};
+
+enum Contact_state : u8{
+    UP = 0,
+    DOWN
 };
 // ===================  structs  ==================
 
@@ -89,12 +96,12 @@ struct InputReportInfo {
 };
 
 struct offscrean_buffer {
-    BITMAPINFO info;													// This is you telling Windows the "Rules" of your DIB
-    void* memory;														// A raw pointer for you to touch the pixels directly
+    BITMAPINFO info;		    // This is you telling Windows the "Rules" of your DIB
+    void* memory;			    // A raw pointer for you to touch the pixels directly
     int width;
     int height;
     int bytesPerPixel = 4;
-    int pitch;															// gap between tow rows
+    int pitch;					// gap between tow rows
 };
 
 struct window_dimension {
@@ -123,10 +130,9 @@ struct FingerDeltaData{
     u32 xf, yf;
     u32 xd, yd;
     u32 distance_traveled;
-
     
     u8 confidence;
-    u8 tip_switch;
+    Contact_state contact_state;
 };
 
 // struct Gesture_report{
