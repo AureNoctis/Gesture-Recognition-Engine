@@ -1,13 +1,12 @@
 #ifndef _WINDOW_
 #define _WINDOW_
 
-
+#include <Windows.h>
+#include <cstring>
+#include <winuser.h>
 #include "utils/declaration.h"
 #include "utils/usage.h"
 
-extern offscrean_buffer globalBackBuffer;
-extern InputReportInfo globalInputReportInfo;
-extern RAWINPUT* globalRawInput;
 
 extern Finger finger_data[5];
 extern TouchPad_state t_state;
@@ -17,7 +16,7 @@ extern bool gesture_end;
 extern int gesture_start_counter;
 
 
-static window_dimension getWindowDimensions(HWND window) {
+window_dimension getWindowDimensions(HWND window) {
     window_dimension dimension;
 
     RECT clientRect;
@@ -27,8 +26,19 @@ static window_dimension getWindowDimensions(HWND window) {
     return dimension;
 }
 
+void* _init_window_state(HWND window, Window_state w_state){
+    void* data = malloc(sizeof(Window_state));
+    memcpy(data, &w_state, sizeof(w_state));
 
-static LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    SetWindowLongPtrW(window, GWLP_USERDATA, (LONG_PTR)data);
+
+    return data;
+}
+
+LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+
+    Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
+
     switch (message) {
     case WM_PAINT: {
 
@@ -36,8 +46,8 @@ static LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wPa
         HDC deviceContext = BeginPaint(window, &paint);
 
         window_dimension dimension = getWindowDimensions(window);
-        updateWindow(deviceContext, dimension.width, dimension.height, &globalBackBuffer);
-
+        updateWindow(deviceContext, dimension.width, dimension.height, &w_state->back_buffer);
+        
         EndPaint(window, &paint);
         return 0;
     }break;
@@ -49,23 +59,14 @@ static LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wPa
     } break;
 
     case WM_INPUT: {
-        if (getRawData(lParam)) {
-            globalInputReportInfo.deviceHandle = globalRawInput->header.hDevice;
-            getInputReportInfo(&globalInputReportInfo);
+        if (getRawData(window, lParam)) {
+            w_state->input_report_info.deviceHandle = w_state->raw_input->header.hDevice;
+            getInputReportInfo(&w_state->input_report_info);
         }
-
-        // fill_payload()
-        // fill_events_in_event_buffer(find_gesture(payload))  --> for all fingers connected
-
-        getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
+        getFingerData(window, finger_data, &t_state);
 
         if(gesture_start == true) gesture_start_counter++;
-
-
-
-
-        printTouchpadData(finger_data, t_state);
-        return DefWindowProc(window, message, wParam, lParam);
+        return 0;
     } break;
 
     default: {

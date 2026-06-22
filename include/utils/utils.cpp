@@ -8,7 +8,7 @@
 #define _do_
 #define _then_
 
-static void summonConsole(){
+void summonConsole(){
     if (AllocConsole()) {
         FILE* fDummy;
         freopen_s(&fDummy, "CONOUT$", "w", stdout);
@@ -66,7 +66,7 @@ NOTE: %d    = int*
 
 */
 /*
-static void pasrse_ini(const char* file_path, const char* fmt, ...){
+void pasrse_ini(const char* file_path, const char* fmt, ...){
 
     FILE* file = fopen(file_path, "r");
 

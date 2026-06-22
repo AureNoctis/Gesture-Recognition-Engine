@@ -6,7 +6,7 @@
 
 
 
-static void updateWindow(HDC deviceContext, int width, int height, offscrean_buffer* buffer) {
+void updateWindow(HDC deviceContext, int width, int height, offscreen_buffer* buffer) {
 
     StretchDIBits(deviceContext,
         0, 0, width, height,					// destination where we are bliting
@@ -16,7 +16,7 @@ static void updateWindow(HDC deviceContext, int width, int height, offscrean_buf
 }
 
 
-static void resizeDIBSection(offscrean_buffer* buffer, int width, int height) {					// DIB: device independent buffer->
+void resizeDIBSection(offscreen_buffer* buffer, int width, int height) {					// DIB: device independent buffer->
     if (buffer->memory) {
         VirtualFree(buffer->memory, 0, MEM_RELEASE);
     }
@@ -38,7 +38,7 @@ static void resizeDIBSection(offscrean_buffer* buffer, int width, int height) {	
 
 
 
-static void renderWeirdGradiant(offscrean_buffer* buffer, int blueOffset, int greenOffset) {
+void renderWeirdGradiant(offscreen_buffer* buffer, int blueOffset, int greenOffset) {
 
     u8* row = (u8*)buffer->memory;
     for (int y = 0; y < buffer->height; ++y) {

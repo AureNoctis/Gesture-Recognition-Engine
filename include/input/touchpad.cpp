@@ -4,10 +4,8 @@
 #include "utils/declaration.h"
 #include "utils/usage.h"
 #include "math.h"
+#include <winuser.h>
 
-extern offscrean_buffer globalBackBuffer;
-extern InputReportInfo globalInputReportInfo;
-extern RAWINPUT* globalRawInput;
 
 extern Finger finger_data[5];
 extern TouchPad_state t_state;
@@ -17,7 +15,7 @@ extern bool gesture_end;
 extern int gesture_start_counter;
 
 [[maybe_unused]]
-static void printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
+void printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
 
     printf(
         "---------------------------------------------------\n"
@@ -42,9 +40,12 @@ static void printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
     }
 }
 
-static void getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw,
-                                Finger* finger_data, TouchPad_state* t_state)
-{
+void getFingerData(HWND window, Finger* finger_data, TouchPad_state* t_state){
+
+    Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
+    PHIDP_PREPARSED_DATA preparsedData = w_state->input_report_info.ptrPreparsedData;
+
+    RAWINPUT* raw = w_state->raw_input;
     i8* report = (i8*)raw->data.hid.bRawData;
     u32 reportLen = raw->data.hid.dwSizeHid;
 
@@ -113,22 +114,29 @@ static void getFingerData(PHIDP_PREPARSED_DATA preparsedData, RAWINPUT* raw,
 
 }
 
-void getFingerDeltaData(FingerDeltaData* holder){
+void getFingerDeltaData(HWND window, FingerDeltaData* holder){
+    // Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, int nIndex)
 
     static Finger gesture_start_data[5];
     static bool got_gesture_start_data[5];
 
-    static int gesture_start_time[5];
+    static u32 gesture_start_time[5];
     static bool got_start_time[5];
     // static Finger gesture_end_data[5]; 
     // |--> this data is already present in finger_data while the gesture_end is true
+    static u8 prev_contact_count;
 
-    getFingerData(globalInputReportInfo.ptrPreparsedData, globalRawInput, finger_data, &t_state);
+
+    getFingerData(window, finger_data, &t_state);
+    
+    
 
 
 
 
     
+
+    prev_contact_count = t_state.contactCount;    
 //     if(t_state.contactCount > *get_maxContactCount(holder)){
 //         *get_maxContactCount(holder) = t_state.contactCount;
 //     }

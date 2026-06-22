@@ -3,7 +3,7 @@
 
 */
 //! ============================================================================================================================================
- 
+#pragma once 
 // C/C++ Standard Library
 #include <stdint.h>
 #include <stdlib.h>
@@ -30,19 +30,13 @@ typedef long NTSTATUS;
 
 
 // ====================  global variable  ====================
-static bool globalRunning = false;
-static offscrean_buffer globalBackBuffer;
+Finger finger_data[5];
+TouchPad_state t_state;
 
-static InputReportInfo globalInputReportInfo;
-
-static RAWINPUT* globalRawInput;
-static Finger finger_data[5];
-static TouchPad_state t_state;
-
-static bool gesture_start = false;
-static bool gesture_end   = false;
-static int gesture_start_counter = 0;
-static FingerDeltaData *finger_change_data; // pointer will be assigned from the create_holder function
+bool gesture_start = false;
+bool gesture_end   = false;
+int gesture_start_counter = 0;
+FingerDeltaData *finger_change_data; // pointer will be assigned from the create_holder function
 
 // ============================================================
 
@@ -52,6 +46,7 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
     (void)cmdLine;
     (void)cmdShow;
     
+
     summonConsole();
     WNDCLASS windowClass = {};
     windowClass.style = CS_VREDRAW | CS_HREDRAW;
@@ -64,10 +59,16 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
           0, windowClass.lpszClassName, L"gesture recognition engine",
           WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 200,
           200, 0, 0, instance, 0);
+
       if (window) {
 
+        Window_state* w_state = (Window_state*)init_window_state(window,/* .gesture_start = false, 
+                                                                         .gesture_start_counter = 0 */);
+        
+        bool running = w_state->running;
+        running = true;
+        
         RAWINPUTDEVICE rid[1];
-
         rid[0].usUsagePage = 0x000D;
         rid[0].usUsage = 0x0005;
         rid[0].dwFlags = RIDEV_INPUTSINK;
@@ -76,16 +77,15 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
         RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
 
         HDC deviceContext = GetDC(window);
-        resizeDIBSection(&globalBackBuffer, 200, 200);
-        globalRunning = true;
+        resizeDIBSection(&w_state->back_buffer, 200, 200);
 
-        while (globalRunning) {
-          renderWeirdGradiant(&globalBackBuffer, 0, 0);
+        while (running) {
+          renderWeirdGradiant(&w_state->back_buffer, 0, 0);
 
           MSG message;
           while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
             if (message.message == WM_QUIT)
-              globalRunning = false;
+              running = false;
 
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -97,20 +97,12 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
 
           window_dimension dimension = getWindowDimensions(window);
           updateWindow(deviceContext, dimension.width, dimension.height,
-                             &globalBackBuffer);
+                             &w_state->back_buffer);
         }
         ReleaseDC(window, deviceContext);
       } else {
       }
     }else{}
-
-
-    free(globalRawInput);
-    free(globalInputReportInfo.ptrPreparsedData);
-    free(globalInputReportInfo.pLinkCollection);
-    free(globalInputReportInfo.pCaps);
-    free(globalInputReportInfo.pValCaps);
-    free(globalInputReportInfo.pButtonCaps);
 }
 
 

@@ -37,7 +37,7 @@ pushd "%BUILD_DIR%"
     )
 
     if exist "compile_commands.raw.json" (
-        powershell -Command "(Get-Content compile_commands.raw.json -Raw).Trim().TrimEnd(',') | ForEach-Object { '[' + $_ + ']' }" > compile_commands.json
+        powershell -Command "(Get-Content compile_commands.raw.json -Raw).Trim().TrimEnd(',') | ForEach-Object { '[' + $_ + ']' }" > "%WORKSPACE_DIR%\compile_commands.json"
         del compile_commands.raw.json
     )
 

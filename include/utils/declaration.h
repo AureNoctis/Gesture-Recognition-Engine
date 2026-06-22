@@ -84,7 +84,6 @@ enum Contact_state : u8{
     DOWN
 };
 // ===================  structs  ==================
-
 struct InputReportInfo {
     PHIDP_PREPARSED_DATA ptrPreparsedData;
     HIDP_CAPS* pCaps;
@@ -95,7 +94,7 @@ struct InputReportInfo {
     HANDLE deviceHandle;
 };
 
-struct offscrean_buffer {
+struct offscreen_buffer {
     BITMAPINFO info;		    // This is you telling Windows the "Rules" of your DIB
     void* memory;			    // A raw pointer for you to touch the pixels directly
     int width;
@@ -135,68 +134,55 @@ struct FingerDeltaData{
     Contact_state contact_state;
 };
 
-// struct Gesture_report{
-//     Gesture_type type;
-//     u16 time_elapsed;
-//     union{
-//         struct{
-//             u16 x;
-//             u16 y;
-//         };
-//         struct{
-//             u16 speed;
-//             u16 distance_traveled;
-//         };
-//     };
-// };
+struct Window_state{
+    offscreen_buffer back_buffer;
+    InputReportInfo  input_report_info;
+    RAWINPUT*        raw_input;
+    Finger           finger_data[5];
+    TouchPad_state   t_state;
+    bool             gesture_start;
+    bool             gesture_end;
+    bool             running;
+    int              gesture_start_counter;
+};
 
-// struct TouchHistory{
-//     Finger *history[TOTAL_FINGERS];
-//     u8 contact_count;
-//     u8 index_array[TOTAL_FINGERS];
-//     u8 data_filled[TOTAL_FINGERS];
-// };
-
-// /*
-//     if data_filled[finger] == max_sample ----> long_gesture(~0.5 sec) (e.g. hold, ...)
-//     data_filling index in heap buffer will be obtained from "FINGER.ID"
-
-// */
 
 // ===================  function declaration  ==================
 
-static void summonConsole();
+void summonConsole();
 
-static void getFingerData(PHIDP_PREPARSED_DATA preparsedData,
-                                RAWINPUT *raw, Finger *finger_data,
-                                TouchPad_state *t_state);
+void getFingerData(HWND window, Finger *finger_data, TouchPad_state *t_state);
 
-static void printTouchpadData(Finger *finger_data,
+void printTouchpadData(Finger *finger_data,
                                     TouchPad_state t_state);
-static LRESULT CALLBACK mainWindowCallback(HWND window, UINT message,
+LRESULT CALLBACK mainWindowCallback(HWND window, UINT message,
                                                  WPARAM wParam, LPARAM lParam);
 
-static window_dimension getWindowDimensions(HWND window);
+window_dimension getWindowDimensions(HWND window);
 
 force_Inline static void getTouchPadInfoFile(InputReportInfo *info);
 
-static void getUsageValue_status(NTSTATUS status);
+void getUsageValue_status(NTSTATUS status);
 
-static int getRawData(LPARAM lParam);
+int getRawData(HWND window, LPARAM lParam);
 
-static void getInputReportInfo(InputReportInfo *info);
+void getInputReportInfo(InputReportInfo *info);
 
-static void renderWeirdGradiant(offscrean_buffer *buffer,
+void renderWeirdGradiant(offscreen_buffer *buffer,
                                       int blueOffset, int greenOffset);
 
-static void resizeDIBSection(offscrean_buffer *buffer, int width,
+void resizeDIBSection(offscreen_buffer *buffer, int width,
                                    int height);
 
-static void updateWindow(HDC deviceContext, int width, int height,
-                               offscrean_buffer *buffer);
+void updateWindow(HDC deviceContext, int width, int height,
+                               offscreen_buffer *buffer);
 
-static FingerDeltaData* create_holder(u32 data_size, u32 data_count);
-static u32* get_maxContactCount(FingerDeltaData* holder);
-static void free_holder(FingerDeltaData* holder);
+FingerDeltaData* create_holder(u32 data_size, u32 data_count);
+u32* get_maxContactCount(FingerDeltaData* holder);
+void free_holder(FingerDeltaData* holder);
+
+void* _init_window_state(HWND window, Window_state w_state);
+#define init_window_state(window, ...) _init_window_state(window, (Window_state){__VA_ARGS__})
+
 
 #endif

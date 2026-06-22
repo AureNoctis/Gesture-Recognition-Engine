@@ -4,3 +4,4 @@
 build/
 local/
 .clangd
+compile_commands.json

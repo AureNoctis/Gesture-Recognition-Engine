@@ -3,14 +3,10 @@
 
 #include "utils/declaration.h"
 #include "utils/usage.h"
+#include <winuser.h>
 
 
-extern offscrean_buffer globalBackBuffer;
-extern InputReportInfo globalInputReportInfo;
-extern RAWINPUT* globalRawInput;
-
-
-static void getInputReportInfo(InputReportInfo* info) {
+void getInputReportInfo(InputReportInfo* info) {
     // allocat buffer if not allocated else reuse that
 
     u32 pdataSize;
@@ -43,7 +39,8 @@ static void getInputReportInfo(InputReportInfo* info) {
 }
 
 
-static int getRawData(LPARAM lParam) {
+int getRawData(HWND window, LPARAM lParam) {
+    Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
     // allocat buffer if not allocated else reuse that
     static u32 prevRawInputSize = 0;
 
@@ -52,20 +49,20 @@ static int getRawData(LPARAM lParam) {
     u32 return_value = 0;
 
     if (size > prevRawInputSize) { // just in case size of raw input changed
-        RAWINPUT* new_globalRawInput = (RAWINPUT*)realloc(globalRawInput, size);
-        if (new_globalRawInput != nullptr)
-            globalRawInput = new_globalRawInput;
+        RAWINPUT* new_raw_input = (RAWINPUT*)realloc(w_state->raw_input, size);
+        if (new_raw_input != nullptr)
+            w_state->raw_input = new_raw_input;
         return_value = 1;
         prevRawInputSize = size;
     }
 
-    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (u8*)globalRawInput, &size, sizeof(RAWINPUTHEADER));
+    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (u8*)w_state->raw_input, &size, sizeof(RAWINPUTHEADER));
     return return_value;
     // return_value( gets feeded to if condtion ) will decide if getInputReportInfo should be called or not
 }
 
 [[maybe_unused]]
-static void getUsageValue_status(NTSTATUS status) {
+void getUsageValue_status(NTSTATUS status) {
     printf("\033[1;31m");
     switch (status) {
     case HIDP_STATUS_SUCCESS: printf("SUCCESS"); break;
@@ -79,7 +76,7 @@ static void getUsageValue_status(NTSTATUS status) {
 }
 
 
-static void __getTouchPadInfoFile(InputReportInfo* info){
+void __getTouchPadInfoFile(InputReportInfo* info){
     FILE* file = fopen("touchpad_data.txt", "w");
     if(!file){
         printf("file can't be opened\n");
