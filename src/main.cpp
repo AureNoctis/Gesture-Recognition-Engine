@@ -30,13 +30,7 @@ typedef long NTSTATUS;
 
 
 // ====================  global variable  ====================
-Finger finger_data[5];
-TouchPad_state t_state;
-
-bool gesture_start = false;
-bool gesture_end   = false;
-int gesture_start_counter = 0;
-FingerDeltaData *finger_change_data; // pointer will be assigned from the create_holder function
+// FingerDeltaData *finger_change_data; // pointer will be assigned from the create_holder function
 
 // ============================================================
 

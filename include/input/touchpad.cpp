@@ -7,15 +7,12 @@
 #include <winuser.h>
 
 
-extern Finger finger_data[5];
-extern TouchPad_state t_state;
-
-extern bool gesture_start;
-extern bool gesture_end;
-extern int gesture_start_counter;
-
 [[maybe_unused]]
-void printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
+void printTouchpadData(HWND window) {
+
+    Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
+    TouchPad_state t_state = w_state->t_state;
+    Finger* finger_data = w_state->finger_data;
 
     printf(
         "---------------------------------------------------\n"
@@ -40,17 +37,19 @@ void printTouchpadData(Finger* finger_data, TouchPad_state t_state) {
     }
 }
 
-void getFingerData(HWND window, Finger* finger_data, TouchPad_state* t_state){
+void getFingerData(HWND window){
 
     Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
     PHIDP_PREPARSED_DATA preparsedData = w_state->input_report_info.ptrPreparsedData;
+    Finger* finger_data = w_state->finger_data;
+    TouchPad_state t_state = w_state->t_state;
 
     RAWINPUT* raw = w_state->raw_input;
     i8* report = (i8*)raw->data.hid.bRawData;
     u32 reportLen = raw->data.hid.dwSizeHid;
 
     memset(finger_data, 0, sizeof(Finger)*5);
-    memset(t_state, 0, sizeof(TouchPad_state));
+    memset(&t_state, 0, sizeof(TouchPad_state));
 
     HIDP_DATA data[32];
     u32 data_length = 32;
@@ -60,9 +59,9 @@ void getFingerData(HWND window, Finger* finger_data, TouchPad_state* t_state){
     for(u32 i = 0; i < data_length; i++){
         switch(data[i].DataIndex) {
         // touchpad
-        case 0:  { (*t_state).touchPadButton = data[i].On;       } break;
-        case 1:  { (*t_state).contactCount   = data[i].RawValue; } break;
-        case 2:  { (*t_state).scanTime       = data[i].RawValue; } break;
+        case 0:  { t_state.touchPadButton = data[i].On;       } break;
+        case 1:  { t_state.contactCount   = data[i].RawValue; } break;
+        case 2:  { t_state.scanTime       = data[i].RawValue; } break;
 
 
         // {F1 F2 ...} are realtive to touchpad:
@@ -108,14 +107,14 @@ void getFingerData(HWND window, Finger* finger_data, TouchPad_state* t_state){
         }
     }
 
-    gesture_end = !(bool)((finger_data[0].tip_switch | finger_data[1].tip_switch | finger_data[2].tip_switch |
+    w_state->gesture_end = !(bool)((finger_data[0].tip_switch | finger_data[1].tip_switch | finger_data[2].tip_switch |
                             finger_data[3].tip_switch | finger_data[4].tip_switch));
-    gesture_start = !gesture_end;
+    w_state->gesture_start = !w_state->gesture_end;
 
 }
 
 void getFingerDeltaData(HWND window, FingerDeltaData* holder){
-    // Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, int nIndex)
+    Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 
     static Finger gesture_start_data[5];
     static bool got_gesture_start_data[5];
@@ -127,7 +126,7 @@ void getFingerDeltaData(HWND window, FingerDeltaData* holder){
     static u8 prev_contact_count;
 
 
-    getFingerData(window, finger_data, &t_state);
+    getFingerData(window);
     
     
 
@@ -136,7 +135,7 @@ void getFingerDeltaData(HWND window, FingerDeltaData* holder){
 
     
 
-    prev_contact_count = t_state.contactCount;    
+    prev_contact_count = w_state->t_state.contactCount;
 //     if(t_state.contactCount > *get_maxContactCount(holder)){
 //         *get_maxContactCount(holder) = t_state.contactCount;
 //     }

@@ -3,17 +3,9 @@
 
 #include <Windows.h>
 #include <cstring>
-#include <winuser.h>
 #include "utils/declaration.h"
 #include "utils/usage.h"
 
-
-extern Finger finger_data[5];
-extern TouchPad_state t_state;
-
-extern bool gesture_start;
-extern bool gesture_end;
-extern int gesture_start_counter;
 
 
 window_dimension getWindowDimensions(HWND window) {
@@ -63,9 +55,11 @@ LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wParam, LP
             w_state->input_report_info.deviceHandle = w_state->raw_input->header.hDevice;
             getInputReportInfo(&w_state->input_report_info);
         }
-        getFingerData(window, finger_data, &t_state);
+        getFingerData(window);
 
-        if(gesture_start == true) gesture_start_counter++;
+        if(w_state->gesture_start == true) w_state->gesture_start_counter++;
+
+        printTouchpadData(window);
         return 0;
     } break;
 

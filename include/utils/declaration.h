@@ -151,12 +151,10 @@ struct Window_state{
 
 void summonConsole();
 
-void getFingerData(HWND window, Finger *finger_data, TouchPad_state *t_state);
+void getFingerData(HWND window);
 
-void printTouchpadData(Finger *finger_data,
-                                    TouchPad_state t_state);
-LRESULT CALLBACK mainWindowCallback(HWND window, UINT message,
-                                                 WPARAM wParam, LPARAM lParam);
+void printTouchpadData(HWND window);
+LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
 
 window_dimension getWindowDimensions(HWND window);
 
