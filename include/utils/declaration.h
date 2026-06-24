@@ -136,11 +136,13 @@ struct FingerDeltaData {
     Contact_state contact_state;
 };
 
+// TODO : order this according to size and alignment
 struct Window_state {
     offscreen_buffer back_buffer;
     InputReportInfo  input_report_info;
     RAWINPUT*        raw_input;
     Finger           finger_data[5];
+    FingerDeltaData  finger_delta[5];
     TouchPad_state   t_state;
     bool             gesture_start;
     bool             gesture_end;
@@ -165,11 +167,11 @@ void*            _init_window_state(HWND window, Window_state w_state);
 #define init_window_state(window, ...) _init_window_state(window, (Window_state){__VA_ARGS__})
 
 // --- hid_data extraction and consumption ---
-void getFingerData(HWND window);
-int  getRawData(HWND window, LPARAM lParam);
 void getInputReportInfo(InputReportInfo* info);
+int  getRawData(HWND window, LPARAM lParam);
+void getFingerData(HWND window);
 
-// --- export hid_data ---
+// --- export hid_data/hid_info ---
 void              printTouchpadData(HWND window);
 force_Inline void getTouchPadInfoFile(InputReportInfo* info);
 

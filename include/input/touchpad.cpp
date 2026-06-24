@@ -4,6 +4,7 @@
 #include "utils/declaration.h"
 #include "utils/usage.h"
 #include "math.h"
+#include <cstring>
 #include <winuser.h>
 
 
@@ -158,23 +159,33 @@ void getFingerData(HWND window) {
     w_state->gesture_start = !w_state->gesture_end;
 }
 
-void getFingerDeltaData(HWND window, FingerDeltaData* holder) {
+void getFingerDeltaData(HWND window) {
     Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 
     static Finger gesture_start_data[5];
     static bool   got_gesture_start_data[5];
-
-    static u32  gesture_start_time[5];
-    static bool got_start_time[5];
-    // static Finger gesture_end_data[5];
-    // |--> this data is already present in finger_data while the gesture_end is true
-    static u8 prev_contact_count;
-
+    static u16    gesture_start_time = 0;
+    static u8     prev_contact_count;
+    static u8     current_contact_count;
 
     getFingerData(window);
 
+    Finger*        finger_data = w_state->finger_data;
+    TouchPad_state t_state     = w_state->t_state;
+    current_contact_count      = t_state.contactCount;
 
-    prev_contact_count = w_state->t_state.contactCount;
+    // if(w_state->gesture_start == true && gesture_start_time == 0 )
+    for (int i = 0; i < 5; i++) {
+        if (finger_data[i].confidence != 0) {
+            if (got_gesture_start_data[finger_data[i].id] == false) {
+                memcpy(gesture_start_data + i, finger_data + i, sizeof(Finger));
+            }
+            continue;
+        }
+        break;
+    }
+
+    prev_contact_count = current_contact_count;
     //     if(t_state.contactCount > *get_maxContactCount(holder)){
     //         *get_maxContactCount(holder) = t_state.contactCount;
     //     }
