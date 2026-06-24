@@ -1,9 +1,10 @@
-//! ===================================================================    TODO    =============================================================
+//! ===================================================================    TODO
+//! =============================================================
 /*
 
 */
 //! ============================================================================================================================================
-#pragma once 
+#pragma once
 // C/C++ Standard Library
 #include <stdint.h>
 #include <stdlib.h>
@@ -34,69 +35,66 @@ typedef long NTSTATUS;
 
 // ============================================================
 
-int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow){
-
+int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdShow) {
     (void)prevInstance;
     (void)cmdLine;
     (void)cmdShow;
-    
+
 
     summonConsole();
-    WNDCLASS windowClass = {};
-    windowClass.style = CS_VREDRAW | CS_HREDRAW;
-    windowClass.lpfnWndProc = mainWindowCallback;
-    windowClass.hInstance = instance;
+    WNDCLASS windowClass      = {};
+    windowClass.style         = CS_VREDRAW | CS_HREDRAW;
+    windowClass.lpfnWndProc   = mainWindowCallback;
+    windowClass.hInstance     = instance;
     windowClass.lpszClassName = L"G.R.E";
 
     if (RegisterClass(&windowClass)) {
-      HWND window = CreateWindowEx(
-          0, windowClass.lpszClassName, L"gesture recognition engine",
-          WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 200,
-          200, 0, 0, instance, 0);
+        HWND window = CreateWindowEx(0, windowClass.lpszClassName, L"gesture recognition engine",
+                                     WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 200, 200,
+                                     0, 0, instance, 0);
 
-      if (window) {
-
-        Window_state* w_state = (Window_state*)init_window_state(window,/* .gesture_start = false, 
+        if (window) {
+            Window_state* w_state = (Window_state*)init_window_state(window,/* .gesture_start = false, 
                                                                          .gesture_start_counter = 0 */);
-        
-        bool running = w_state->running;
-        running = true;
-        
-        RAWINPUTDEVICE rid[1];
-        rid[0].usUsagePage = 0x000D;
-        rid[0].usUsage = 0x0005;
-        rid[0].dwFlags = RIDEV_INPUTSINK;
-        rid[0].hwndTarget = window;
 
-        RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
+            bool running = w_state->running;
+            running      = true;
 
-        HDC deviceContext = GetDC(window);
-        resizeDIBSection(&w_state->back_buffer, 200, 200);
+            RAWINPUTDEVICE rid[1];
+            rid[0].usUsagePage = 0x000D;
+            rid[0].usUsage     = 0x0005;
+            rid[0].dwFlags     = RIDEV_INPUTSINK;
+            rid[0].hwndTarget  = window;
 
-        while (running) {
-          renderWeirdGradiant(&w_state->back_buffer, 0, 0);
+            RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
 
-          MSG message;
-          while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
-            if (message.message == WM_QUIT)
-              running = false;
+            HDC deviceContext = GetDC(window);
+            resizeDIBSection(&w_state->back_buffer, 200, 200);
 
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-          }
-          //! WM_QUIT:
-          // It is NOT sent to your window procedure
-          // It is NOT dispatched via DispatchMessage
-          // It is only seen by GetMessage / PeekMessage
+            while (running) {
+                renderWeirdGradiant(&w_state->back_buffer, 0, 0);
 
-          window_dimension dimension = getWindowDimensions(window);
-          updateWindow(deviceContext, dimension.width, dimension.height,
-                             &w_state->back_buffer);
+                MSG message;
+                while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
+                    if (message.message == WM_QUIT)
+                        running = false;
+
+                    TranslateMessage(&message);
+                    DispatchMessage(&message);
+                }
+                //! WM_QUIT:
+                // It is NOT sent to your window procedure
+                // It is NOT dispatched via DispatchMessage
+                // It is only seen by GetMessage / PeekMessage
+
+                window_dimension dimension = getWindowDimensions(window);
+                updateWindow(deviceContext, dimension.width, dimension.height, &w_state->back_buffer);
+            }
+            ReleaseDC(window, deviceContext);
+        } else {
         }
-        ReleaseDC(window, deviceContext);
-      } else {
-      }
-    }else{}
+    } else {
+    }
 }
 
 
