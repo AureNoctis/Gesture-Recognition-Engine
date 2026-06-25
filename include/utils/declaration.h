@@ -20,7 +20,14 @@ typedef long NTSTATUS;
 // ===================  defines  ==================
 #define force_Inline __forceinline
 
-#define GRE_DELTA_READY (WM_APP + 1)
+#define GRE_GA_DELTA_READY (WM_APP + 1)
+#define GRE_GESTURE_END (WM_APP + 2)
+#define COMBINE_64(low, high) ((((u64)(high)) << 32) | ((u32)(low)))
+#define SPLIT_64(group, low_ptr, high_ptr)                                                                                                                \
+    do {                                                                                                                                                  \
+        *(high_ptr) = (u32)((group) >> 32);                                                                                                               \
+        *(low_ptr)  = (u32)((group) & 0xFFFFFFFFULL);                                                                                                     \
+    } while (0)
 
 #define delta_t 70 // manually got this data for touchpad :) -> 70 us
 #define frequency 143.85

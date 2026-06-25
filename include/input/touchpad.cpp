@@ -5,7 +5,6 @@
 #include "utils/usage.h"
 #include "math.h"
 #include <cstring>
-#include <winuser.h>
 
 
 [[maybe_unused]]
@@ -23,9 +22,8 @@ void printTouchpadData(HWND window) {
     printf("Finger        Tip        Confidence        ID        X              Y\n");
 
     for (i32 i = 0; i < 5; i++) {
-        printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n", i + 1,
-               finger_data[i].tip_switch, finger_data[i].confidence, finger_data[i].id, finger_data[i].x,
-               finger_data[i].y);
+        printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n", i + 1, finger_data[i].tip_switch, finger_data[i].confidence,
+               finger_data[i].id, finger_data[i].x, finger_data[i].y);
     }
 }
 
@@ -153,39 +151,82 @@ void getFingerData(HWND window) {
         }
     }
 
-    w_state->gesture_end =
-        !(bool)((finger_data[0].tip_switch | finger_data[1].tip_switch | finger_data[2].tip_switch |
-                 finger_data[3].tip_switch | finger_data[4].tip_switch));
+    w_state->gesture_end = !(
+        bool)((finger_data[0].tip_switch | finger_data[1].tip_switch | finger_data[2].tip_switch | finger_data[3].tip_switch | finger_data[4].tip_switch));
     w_state->gesture_start = !w_state->gesture_end;
+}
+
+
+int fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_start_time, u16 ga_end_time, FingerDeltaData* ga_pf_delta_data) {
+#define Short_max 65536
+    for (int i = 0; i < 5; i++) {
+        ga_pf_delta_data[i].xi                = ga_pf_start_data[i].x;
+        ga_pf_delta_data[i].yi                = ga_pf_start_data[i].y;
+        ga_pf_delta_data[i].xf                = ga_pf_end_data[i].x;
+        ga_pf_delta_data[i].yf                = ga_pf_end_data[i].y;
+        ga_pf_delta_data[i].xd                = ga_pf_delta_data[i].xf - ga_pf_delta_data[i].xi;
+        ga_pf_delta_data[i].yd                = ga_pf_delta_data[i].yf - ga_pf_delta_data[i].yi;
+        ga_pf_delta_data[i].confidence        = ga_pf_start_data[i].confidence;
+        ga_pf_delta_data[i].contact_state     = (Contact_state)ga_pf_end_data[i].tip_switch;
+        ga_pf_delta_data[i].startTime         = ga_pf_start_time[i];
+        ga_pf_delta_data[i].deltaTime         = (Short_max + ga_end_time - ga_pf_start_time[i]) % Short_max;
+        ga_pf_delta_data[i].distance_traveled = (u32)hypot(ga_pf_delta_data[i].xd, ga_pf_delta_data[i].yd);
+    }
+#undef Short_max
 }
 
 void getFingerDeltaData(HWND window) {
     Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 
-    static Finger gesture_start_data[5];
-    static bool   got_gesture_start_data[5];
-    static u16    gesture_start_time = 0;
-    static u8     prev_contact_count;
-    static u8     current_contact_count;
+    /*
+     naming convention:
+     g  -> gesture
+     a  -> atom
+     pf -> per finger
+
+     geture = collection of ga(s)
+     */
+
+    static u16 g_start_time = 0;
+
+    static Finger ga_pf_start_data[5];
+    static u16    ga_pf_start_time[5];
+    static bool   got_ga_pf_start_data[5]; // for both time and data
+    static u8     ga_prev_contact_count    = 0;
+    static u8     ga_current_contact_count = 0;
 
     getFingerData(window);
 
     Finger*        finger_data = w_state->finger_data;
     TouchPad_state t_state     = w_state->t_state;
-    current_contact_count      = t_state.contactCount;
+    ga_current_contact_count   = t_state.contactCount;
+
+
+    if (ga_current_contact_count < ga_prev_contact_count || w_state->gesture_end) {
+        // flush data
+        fillDeltaStruct(ga_pf_start_data, finger_data, ga_pf_start_time, t_state.scanTime, w_state->finger_delta);
+        PostMessageW(window, GRE_GA_DELTA_READY, ga_prev_contact_count, 0);
+
+        if (w_state->gesture_end)
+            PostMessageW(window, GRE_GESTURE_END, g_start_time, 0);
+    }
+
 
     // if(w_state->gesture_start == true && gesture_start_time == 0 )
     for (int i = 0; i < 5; i++) {
         if (finger_data[i].confidence != 0) {
-            if (got_gesture_start_data[finger_data[i].id] == false) {
-                memcpy(gesture_start_data + i, finger_data + i, sizeof(Finger));
+            if (got_ga_pf_start_data[finger_data[i].id] == false) {
+                got_ga_pf_start_data[finger_data[i].id] = true;
+                memcpy(ga_pf_start_data + i, finger_data + i, sizeof(Finger));
+                ga_pf_start_time[i] = t_state.scanTime;
             }
             continue;
         }
         break;
     }
 
-    prev_contact_count = current_contact_count;
+
+    ga_prev_contact_count = ga_current_contact_count;
     //     if(t_state.contactCount > *get_maxContactCount(holder)){
     //         *get_maxContactCount(holder) = t_state.contactCount;
     //     }
