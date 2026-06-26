@@ -22,6 +22,7 @@ typedef long NTSTATUS;
 
 #define GRE_GA_DELTA_READY (WM_APP + 1)
 #define GRE_GESTURE_END (WM_APP + 2)
+
 #define COMBINE_64(low, high) ((((u64)(high)) << 32) | ((u32)(low)))
 #define SPLIT_64(group, low_ptr, high_ptr)                                                                                                                \
 	do {                                                                                                                                                  \
@@ -138,7 +139,7 @@ struct FingerDeltaData {
 
 	u32 xi, yi;
 	u32 xf, yf;
-	u32 xd, yd;
+	i32 xd, yd;
 	u32 distance_traveled;
 
 	u8			  confidence;
@@ -179,10 +180,12 @@ void*			 _init_window_state(HWND window, Window_state w_state);
 void getInputReportInfo(InputReportInfo* info);
 int	 getRawData(HWND window, LPARAM lParam);
 void getFingerData(HWND window);
+void getFingerDeltaData(HWND window);
 
 // --- export hid_data/hid_info ---
 void			  printTouchpadData(HWND window);
 force_Inline void getTouchPadInfoFile(InputReportInfo* info);
+void			  printFingerDeltaData(HWND window);
 
 // --- holder ---
 FingerDeltaData* create_holder(u32 data_size, u32 data_count);

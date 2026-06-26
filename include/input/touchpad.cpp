@@ -2,7 +2,6 @@
 #define _TOUCHPAD_TEST_
 
 #include "utils/declaration.h"
-#include "utils/usage.h"
 #include "math.h"
 #include <cstring>
 #include <Windows.h>
@@ -26,6 +25,28 @@ void printTouchpadData(HWND window) {
 		printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n", i + 1, finger_data[i].tip_switch, finger_data[i].confidence,
 			   finger_data[i].id, finger_data[i].x, finger_data[i].y);
 	}
+}
+
+[[maybe_unused]]
+void printFingerDeltaData(HWND window) {
+	Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
+
+	// Assuming w_state->finger_delta is the array of FingerDeltaData
+	FingerDeltaData* delta_data = w_state->finger_delta;
+
+	printf("-----------------------------------------------------------------------------------------------------------------------\n");
+	printf("Finger  State  Conf  StartT    DeltaT    Xi       Yi       Xf       Yf       Xd       Yd       Dist\n");
+	printf("-----------------------------------------------------------------------------------------------------------------------\n");
+
+	for (i32 i = 0; i < 5; i++) {
+		printf("F%-2i     %-5d  %-4hhu  %-8hu  %-8hu  %-8u %-8u %-8u %-8u %-8d %-8d %-8u\n", i + 1, (int)delta_data[i].contact_state,
+			   delta_data[i].confidence, delta_data[i].startTime, delta_data[i].deltaTime, delta_data[i].xi, delta_data[i].yi, delta_data[i].xf,
+			   delta_data[i].yf,
+			   (i32)delta_data[i].xd, // Cast to signed for readable negative direction vectors
+			   (i32)delta_data[i].yd, // Cast to signed for readable negative direction vectors
+			   delta_data[i].distance_traveled);
+	}
+	printf("\n");
 }
 
 void getFingerData(HWND window) {
@@ -163,15 +184,24 @@ void getFingerDeltaData(HWND window) {
 				// 3 finger --> 2 finger --> 1 finger
 				// the data of 1st removed finger is still there(confidence = 1), so it will again be filled in delta struct:
 				memset(ga_pf_start_data + i, 0, sizeof(Finger));
+				ga_pf_start_time[i] = 0;
 			}
 		}
 
 		PostMessageW(window, GRE_GA_DELTA_READY, ga_prev_contact_count, 0);
 
-		if (w_state->gesture_end)
+		if (w_state->gesture_end) {
 			PostMessageW(window, GRE_GESTURE_END, 0, 0);
-	}
 
+			memset(ga_pf_start_data, 0, sizeof(ga_pf_start_data));
+			memset(ga_pf_start_time, 0, sizeof(ga_pf_start_time));
+			memset(got_ga_pf_start_data, 0, sizeof(got_ga_pf_start_data));
+
+			ga_prev_contact_count	 = 0;
+			ga_current_contact_count = 0;
+			return;
+		}
+	}
 
 	// if(w_state->gesture_start == true && gesture_start_time == 0 )
 	for (int i = 0; i < 5; i++) {
@@ -186,53 +216,7 @@ void getFingerDeltaData(HWND window) {
 		}
 		break;
 	}
-
-
 	ga_prev_contact_count = ga_current_contact_count;
-	//     if(t_state.contactCount > *get_maxContactCount(holder)){
-	//         *get_maxContactCount(holder) = t_state.contactCount;
-	//     }
-	//
-	//     for(int i = 0; i < 5; i++){
-	//         if(finger_data[i].confidence != 0){
-	//             if(got_start_time[finger_data[i].id] != true){
-	//                 gesture_start_time[finger_data[i].id] = t_state.scanTime;
-	//                 got_start_time[finger_data[i].id] = true;
-	//             }
-	//             continue;
-	//         }
-	//         break;
-	//     }
-	//
-	//
-	//     if(gesture_start_counter == 2){
-	//         memcpy(gesture_start_data, finger_data, 5 * sizeof(Finger));
-	//         return;
-	//     }
-	//     if(gesture_end){
-	//         for(int i = 0; i < 5; i++){
-	//             holder[i].xi = gesture_start_data[i].x;
-	//             holder[i].yi = gesture_start_data[i].y;
-	//             holder[i].xf = finger_data[i].x;
-	//             holder[i].yf = finger_data[i].y;
-	//             holder[i].xd = holder[i].xf - holder[i].xi;
-	//             holder[i].yd = holder[i].yf - holder[i].yi;
-	//
-	//             holder[i].confidence = gesture_start_data[i].confidence;
-	//             holder[i].tip_switch = gesture_start_data[i].tip_switch;
-	//             holder[i].startTime = gesture_start_time[i];
-	//
-	// #define Short_max 65536
-	//             holder[i].deltaTime = (Short_max + t_state.scanTime - gesture_start_time[i]) % Short_max;
-	// #undef Short_max
-	//
-	//             holder[i].distance_traveled = (u32)hypot(holder[i].xd, holder[i].yd);
-	//         }
-	//         memset(gesture_start_data, 0, sizeof(gesture_start_data));
-	//         memset(gesture_start_time, 0, sizeof(gesture_start_time));
-	//         memset(got_start_time, 0, sizeof(got_start_time));
-	//     }
-	//
 }
 
 #endif
