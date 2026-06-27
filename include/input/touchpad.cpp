@@ -53,14 +53,14 @@ void getFingerData(HWND window) {
 	Window_state*		 w_state	   = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 	PHIDP_PREPARSED_DATA preparsedData = w_state->input_report_info.ptrPreparsedData;
 	Finger*				 finger_data   = w_state->finger_data;
-	TouchPad_state		 t_state	   = w_state->t_state;
+	TouchPad_state*		 t_state	   = &(w_state->t_state);
 
 	RAWINPUT* raw		= w_state->raw_input;
 	i8*		  report	= (i8*)raw->data.hid.bRawData;
 	u32		  reportLen = raw->data.hid.dwSizeHid;
 
 	memset(finger_data, 0, sizeof(Finger) * 5);
-	memset(&t_state, 0, sizeof(TouchPad_state));
+	memset(t_state, 0, sizeof(TouchPad_state));
 
 	HIDP_DATA data[32];
 	u32		  data_length = 32;
@@ -71,9 +71,9 @@ void getFingerData(HWND window) {
 				// clang-format off
 
 			// touchpad
-			case 0: { t_state.touchPadButton = data[i].On;       } break;
-			case 1: { t_state.contactCount   = data[i].RawValue; } break;
-			case 2: { t_state.scanTime       = data[i].RawValue; } break;
+			case 0: { (*t_state).touchPadButton = data[i].On;       } break;
+			case 1: { (*t_state).contactCount   = data[i].RawValue; } break;
+			case 2: { (*t_state).scanTime       = data[i].RawValue; } break;
 
 			// {F1 F2 ...} are relative to touchpad:
 			// index0
@@ -140,10 +140,16 @@ u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_
 			ga_pf_delta_data[i].deltaTime		  = (Short_max + ga_end_time - ga_pf_start_time[i]) % Short_max;
 			ga_pf_delta_data[i].distance_traveled = (u32)hypot(ga_pf_delta_data[i].xd, ga_pf_delta_data[i].yd);
 
-			if (ga_pf_delta_data[i].contact_state == DOWN)
+			if (ga_pf_delta_data[i].contact_state == DOWN) {
 				SET_BIT(&finger_state, i);
+			}
+			// printf("%d%d ", i, ga_pf_start_data[i].id);
 		}
 	}
+	for (int i = 0; i < 3; i++) {
+		printf("%d ", ga_pf_end_data[i].tip_switch);
+	}
+	printf("\n");
 	return finger_state;
 #undef Short_max
 }
@@ -165,6 +171,10 @@ void getFingerDeltaData(HWND window) {
 	static Finger ga_pf_start_data[5]	   = {};
 	static u16	  ga_pf_start_time[5]	   = {};
 	static u8	  got_ga_pf_start_data[5]  = {}; // for both time and data
+	static Finger ga_pf_end_data[5]		   = {};
+	// |-> this contain the data before lifting finger
+	// not using finger_data as the end data because the the filling order is different finger_data : 0 to count-1 : (bottom(0) to up)
+	// but i wanted filling to be done on the basis of finger index :)
 	static u8	  ga_prev_contact_count	   = 0;
 	static u8	  ga_current_contact_count = 0;
 
@@ -176,8 +186,7 @@ void getFingerDeltaData(HWND window) {
 
 
 	if (ga_current_contact_count < ga_prev_contact_count || w_state->gesture_end) {
-		// flush data
-		u8 finger_state = fillDeltaStruct(ga_pf_start_data, finger_data, ga_pf_start_time, t_state.scanTime, w_state->finger_delta);
+		u8 finger_state = fillDeltaStruct(ga_pf_start_data, ga_pf_end_data, ga_pf_start_time, t_state.scanTime, w_state->finger_delta);
 		for (int i = 0; i < 5; i++) {
 			if ((got_ga_pf_start_data[i] &= ((finger_state >> i) & 1)) == 0) {
 				// to remove ghost finger:
@@ -188,6 +197,7 @@ void getFingerDeltaData(HWND window) {
 			}
 		}
 
+
 		PostMessageW(window, GRE_GA_DELTA_READY, ga_prev_contact_count, 0);
 
 		if (w_state->gesture_end) {
@@ -196,6 +206,7 @@ void getFingerDeltaData(HWND window) {
 			memset(ga_pf_start_data, 0, sizeof(ga_pf_start_data));
 			memset(ga_pf_start_time, 0, sizeof(ga_pf_start_time));
 			memset(got_ga_pf_start_data, 0, sizeof(got_ga_pf_start_data));
+			memset(ga_pf_end_data, 0, sizeof(ga_pf_end_data));
 
 			ga_prev_contact_count	 = 0;
 			ga_current_contact_count = 0;
@@ -204,18 +215,29 @@ void getFingerDeltaData(HWND window) {
 	}
 
 	// if(w_state->gesture_start == true && gesture_start_time == 0 )
+	u8	should_update = 1;
+	int finger_ID;
+	for (int i = 0; (should_update == 1) && (i < ga_current_contact_count); i++) {
+		should_update &= finger_data[i].tip_switch;
+	}
 	for (int i = 0; i < 5; i++) {
 		if (finger_data[i].confidence != 0) {
-			int finger_ID = finger_data[i].id;
+			finger_ID = finger_data[i].id;
 			if (got_ga_pf_start_data[finger_ID] == 0) {
 				got_ga_pf_start_data[finger_ID] = 1;
 				memcpy(ga_pf_start_data + finger_ID, finger_data + i, sizeof(Finger));
 				ga_pf_start_time[finger_ID] = t_state.scanTime;
 			}
+			if (should_update) {
+				memcpy(ga_pf_end_data + finger_ID, finger_data + i, sizeof(Finger));
+			} else {
+				memset(&ga_pf_end_data, 0, sizeof(ga_pf_end_data));
+			}
 			continue;
 		}
 		break;
 	}
+
 	ga_prev_contact_count = ga_current_contact_count;
 }
 
