@@ -132,8 +132,8 @@ u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_
 			ga_pf_delta_data[i].yi				  = ga_pf_start_data[i].y;
 			ga_pf_delta_data[i].xf				  = ga_pf_end_data[i].x;
 			ga_pf_delta_data[i].yf				  = ga_pf_end_data[i].y;
-			ga_pf_delta_data[i].xd				  = ga_pf_delta_data[i].xf - ga_pf_delta_data[i].xi;
-			ga_pf_delta_data[i].yd				  = ga_pf_delta_data[i].yf - ga_pf_delta_data[i].yi;
+			ga_pf_delta_data[i].xd				  = ga_pf_end_data[i].x - ga_pf_end_data[i].x;
+			ga_pf_delta_data[i].yd				  = ga_pf_end_data[i].y - ga_pf_end_data[i].y;
 			ga_pf_delta_data[i].confidence		  = ga_pf_start_data[i].confidence;
 			ga_pf_delta_data[i].contact_state	  = (Contact_state)ga_pf_end_data[i].tip_switch;
 			ga_pf_delta_data[i].startTime		  = ga_pf_start_time[i];
@@ -146,10 +146,26 @@ u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_
 			// printf("%d%d ", i, ga_pf_start_data[i].id);
 		}
 	}
-	for (int i = 0; i < 3; i++) {
-		printf("%d ", ga_pf_end_data[i].tip_switch);
-	}
-	printf("\n");
+	// printf("==========  start data  ==========\n");
+	// printf("Finger        Tip        Confidence        ID        X              Y\n");
+	// for (i32 i = 0; i < 5; i++) {
+	// 	printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n", i + 1, ga_pf_start_data[i].tip_switch,
+	// 		   ga_pf_start_data[i].confidence, ga_pf_start_data[i].id, ga_pf_start_data[i].x, ga_pf_start_data[i].y);
+	// }
+	//
+	// printf("==========  end data  ==========\n");
+	// printf("Finger        Tip        Confidence        ID        X              Y\n");
+	// for (i32 i = 0; i < 5; i++) {
+	// 	printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n", i + 1, ga_pf_end_data[i].tip_switch,
+	// 		   ga_pf_end_data[i].confidence, ga_pf_end_data[i].id, ga_pf_end_data[i].x, ga_pf_end_data[i].y);
+	// }
+	//
+	// printf("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_ \n\n");
+	//
+	// for (int i = 0; i < 3; i++) {
+	// 	printf("%d ", ga_pf_end_data[i].tip_switch);
+	// }
+	// printf("\n");
 	return finger_state;
 #undef Short_max
 }
@@ -186,6 +202,10 @@ void getFingerDeltaData(HWND window) {
 
 
 	if (ga_current_contact_count < ga_prev_contact_count || w_state->gesture_end) {
+		if (w_state->gesture_end == true) {
+			for (int i = 0; i < ga_current_contact_count; i++)
+				memcpy(ga_pf_end_data + finger_data[i].id, finger_data + i, sizeof(Finger));
+		}
 		u8 finger_state = fillDeltaStruct(ga_pf_start_data, ga_pf_end_data, ga_pf_start_time, t_state.scanTime, w_state->finger_delta);
 		for (int i = 0; i < 5; i++) {
 			if ((got_ga_pf_start_data[i] &= ((finger_state >> i) & 1)) == 0) {
@@ -193,6 +213,7 @@ void getFingerDeltaData(HWND window) {
 				// 3 finger --> 2 finger --> 1 finger
 				// the data of 1st removed finger is still there(confidence = 1), so it will again be filled in delta struct:
 				memset(ga_pf_start_data + i, 0, sizeof(Finger));
+				memset(ga_pf_end_data + i, 0, sizeof(Finger));
 				ga_pf_start_time[i] = 0;
 			}
 		}
@@ -215,24 +236,16 @@ void getFingerDeltaData(HWND window) {
 	}
 
 	// if(w_state->gesture_start == true && gesture_start_time == 0 )
-	u8	should_update = 1;
 	int finger_ID;
-	for (int i = 0; (should_update == 1) && (i < ga_current_contact_count); i++) {
-		should_update &= finger_data[i].tip_switch;
-	}
 	for (int i = 0; i < 5; i++) {
-		if (finger_data[i].confidence != 0) {
+		if (finger_data[i].confidence == 1) {
 			finger_ID = finger_data[i].id;
 			if (got_ga_pf_start_data[finger_ID] == 0) {
 				got_ga_pf_start_data[finger_ID] = 1;
 				memcpy(ga_pf_start_data + finger_ID, finger_data + i, sizeof(Finger));
 				ga_pf_start_time[finger_ID] = t_state.scanTime;
 			}
-			if (should_update) {
-				memcpy(ga_pf_end_data + finger_ID, finger_data + i, sizeof(Finger));
-			} else {
-				memset(&ga_pf_end_data, 0, sizeof(ga_pf_end_data));
-			}
+			memcpy(ga_pf_end_data + finger_ID, finger_data + i, sizeof(Finger));
 			continue;
 		}
 		break;
