@@ -143,29 +143,8 @@ u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_
 			if (ga_pf_delta_data[i].contact_state == DOWN) {
 				SET_BIT(&finger_state, i);
 			}
-			// printf("%d%d ", i, ga_pf_start_data[i].id);
 		}
 	}
-	// printf("==========  start data  ==========\n");
-	// printf("Finger        Tip        Confidence        ID        X              Y\n");
-	// for (i32 i = 0; i < 5; i++) {
-	// 	printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n", i + 1, ga_pf_start_data[i].tip_switch,
-	// 		   ga_pf_start_data[i].confidence, ga_pf_start_data[i].id, ga_pf_start_data[i].x, ga_pf_start_data[i].y);
-	// }
-	//
-	// printf("==========  end data  ==========\n");
-	// printf("Finger        Tip        Confidence        ID        X              Y\n");
-	// for (i32 i = 0; i < 5; i++) {
-	// 	printf("F%-2i          %-3hu        %-10hu        %-3hhu       %-10u     %-10u\n", i + 1, ga_pf_end_data[i].tip_switch,
-	// 		   ga_pf_end_data[i].confidence, ga_pf_end_data[i].id, ga_pf_end_data[i].x, ga_pf_end_data[i].y);
-	// }
-	//
-	// printf("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_ \n\n");
-	//
-	// for (int i = 0; i < 3; i++) {
-	// 	printf("%d ", ga_pf_end_data[i].tip_switch);
-	// }
-	// printf("\n");
 	return finger_state;
 #undef Short_max
 }

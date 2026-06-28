@@ -54,12 +54,6 @@ LRESULT CALLBACK mainWindowCallback(HWND window, UINT message, WPARAM wParam, LP
 
 			getFingerDeltaData(window);
 
-			// getFingerData(window);
-			//
-			// if (w_state->gesture_start == true)
-			//     w_state->gesture_start_counter++;
-			//
-			// printTouchpadData(window);
 			return 0;
 		} break;
 
