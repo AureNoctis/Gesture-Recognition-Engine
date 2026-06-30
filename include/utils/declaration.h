@@ -31,6 +31,7 @@ typedef long NTSTATUS;
 	} while (0)
 
 #define SET_BIT(host_ptr, bit) (*(host_ptr) |= (1ULL << bit))
+#define FILL_BIT(host_ptr, bit, value) (*(host_ptr) |= (value << bit))
 
 #define delta_t 70 // manually got this data for touchpad :) -> 70 us
 #define frequency 143.85

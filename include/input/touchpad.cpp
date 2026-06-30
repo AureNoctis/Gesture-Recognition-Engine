@@ -125,31 +125,114 @@ void getFingerData(HWND window) {
 
 u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_start_time, u16 ga_end_time, FingerDeltaData* ga_pf_delta_data) {
 #define Short_max 65536
+	memset(ga_pf_delta_data, 0, sizeof(*ga_pf_delta_data));
 	u8 finger_state = 0;
 	for (int i = 0; i < 5; i++) {
 		if (ga_pf_start_data[i].confidence == 1) {
-			ga_pf_delta_data[i].xi				  = ga_pf_start_data[i].x;
-			ga_pf_delta_data[i].yi				  = ga_pf_start_data[i].y;
+			ga_pf_delta_data[i].xi			  = ga_pf_start_data[i].x;
+			ga_pf_delta_data[i].yi			  = ga_pf_start_data[i].y;
+			ga_pf_delta_data[i].confidence	  = ga_pf_start_data[i].confidence;
+			ga_pf_delta_data[i].startTime	  = ga_pf_start_time[i];
+			ga_pf_delta_data[i].deltaTime	  = (Short_max + ga_end_time - ga_pf_start_time[i]) % Short_max;
+			ga_pf_delta_data[i].contact_state = (Contact_state)ga_pf_end_data[i].tip_switch;
+
+			FILL_BIT(&finger_state, i, ga_pf_end_data[i].tip_switch);
+
 			ga_pf_delta_data[i].xf				  = ga_pf_end_data[i].x;
 			ga_pf_delta_data[i].yf				  = ga_pf_end_data[i].y;
-			ga_pf_delta_data[i].xd				  = ga_pf_end_data[i].x - ga_pf_end_data[i].x;
-			ga_pf_delta_data[i].yd				  = ga_pf_end_data[i].y - ga_pf_end_data[i].y;
-			ga_pf_delta_data[i].confidence		  = ga_pf_start_data[i].confidence;
-			ga_pf_delta_data[i].contact_state	  = (Contact_state)ga_pf_end_data[i].tip_switch;
-			ga_pf_delta_data[i].startTime		  = ga_pf_start_time[i];
-			ga_pf_delta_data[i].deltaTime		  = (Short_max + ga_end_time - ga_pf_start_time[i]) % Short_max;
+			ga_pf_delta_data[i].xd				  = ga_pf_end_data[i].x - ga_pf_start_data[i].x;
+			ga_pf_delta_data[i].yd				  = ga_pf_end_data[i].y - ga_pf_start_data[i].y;
 			ga_pf_delta_data[i].distance_traveled = (u32)hypot(ga_pf_delta_data[i].xd, ga_pf_delta_data[i].yd);
-
-			if (ga_pf_delta_data[i].contact_state == DOWN) {
-				SET_BIT(&finger_state, i);
-			}
 		}
 	}
+	//
+	//    printf("------------------------------------------------\n");
+	// printf("ga_end_time: %u\n\n", ga_end_time);
+	//
+	// // Parameters 1, 2, and 3: Arrays with 5 elements
+	// for (int i = 0; i < 5; i++) {
+	// 	printf("--- Index [%d] ---\n", i);
+	// 	printf("Start Data | x: %u, y: %u, id: %u, tip: %u, conf: %u\n", ga_pf_start_data[i].x, ga_pf_start_data[i].y, ga_pf_start_data[i].id,
+	// 		   ga_pf_start_data[i].tip_switch, ga_pf_start_data[i].confidence);
+	// 	printf("End Data   | x: %u, y: %u, id: %u, tip: %u, conf: %u\n", ga_pf_end_data[i].x, ga_pf_end_data[i].y, ga_pf_end_data[i].id,
+	// 		   ga_pf_end_data[i].tip_switch, ga_pf_end_data[i].confidence);
+	// 	printf("Start Time | %u\n\n", ga_pf_start_time[i]);
+	// }
+	//
 	return finger_state;
 #undef Short_max
 }
 
 void getFingerDeltaData(HWND window) {
+	Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
+
+	/*
+	 naming convention:
+	 g  -> gesture
+	 a  -> atom
+	 pf -> per finger
+
+	 geture = collection of ga(s)
+	 */
+
+	//	static u16 g_start_time = 0;
+
+	static Finger ga_pf_start_data[5]	  = {};
+	static u16	  ga_pf_start_time[5]	  = {};
+	static u8	  got_ga_pf_start_data[5] = {}; // for both time and data
+	Finger		  ga_pf_current_data[5]	  = {};
+	// |-> this contain the data before lifting finger
+	// not using finger_data as the end data because the the filling order is different finger_data : 0 to count-1 : (bottom(0) to up)
+	// but i wanted filling to be done on the basis of finger index :)
+
+	Finger*		   finger_data = w_state->finger_data;
+	TouchPad_state t_state	   = w_state->t_state;
+
+	getFingerData(window);
+
+	// if(w_state->gesture_start == true && gesture_start_time == 0 )
+	int finger_ID;
+	for (int i = 0; i < 5; i++) {
+		if (finger_data[i].confidence == 1) {
+			finger_ID = finger_data[i].id;
+			// filling current data
+			memcpy(ga_pf_current_data + finger_ID, finger_data + i, sizeof(Finger));
+
+			// filling start data
+			if (got_ga_pf_start_data[finger_ID] == 0) {
+				got_ga_pf_start_data[finger_ID] = 1;
+				memcpy(ga_pf_start_data + finger_ID, finger_data + i, sizeof(Finger));
+				ga_pf_start_time[finger_ID] = t_state.scanTime;
+			}
+			continue;
+		}
+		break;
+	}
+
+	u8 finger_state = fillDeltaStruct(ga_pf_start_data, ga_pf_current_data, ga_pf_start_time, t_state.scanTime, w_state->finger_delta);
+	PostMessageW(window, GRE_GA_DELTA_READY, 0, 0);
+
+	for (int i = 0; i < 5; i++) {
+		if ((got_ga_pf_start_data[i] &= ((finger_state >> i) & 1)) == 0) {
+			// to remove ghost finger:
+			// 3 finger --> 2 finger --> 1 finger
+			// the data of 1st removed finger is still there(confidence = 1), so it will again be filled in delta struct:
+			memset(ga_pf_start_data + i, 0, sizeof(Finger));
+			ga_pf_start_time[i] = 0;
+		}
+	}
+
+	if (w_state->gesture_end) {
+		PostMessageW(window, GRE_GESTURE_END, 0, 0);
+
+		memset(ga_pf_start_data, 0, sizeof(ga_pf_start_data));
+		memset(ga_pf_start_time, 0, sizeof(ga_pf_start_time));
+		memset(got_ga_pf_start_data, 0, sizeof(got_ga_pf_start_data));
+	}
+}
+
+
+void _getFingerDeltaData(HWND window) {
 	Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 
 	/*
