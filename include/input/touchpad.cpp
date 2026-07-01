@@ -29,22 +29,20 @@ void printTouchpadData(HWND window) {
 
 [[maybe_unused]]
 void printFingerDeltaData(HWND window) {
-	Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
-
+	Window_state*	 w_state	= (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 	FingerDeltaData* delta_data = w_state->finger_delta;
 
-	printf("-----------------------------------------------------------------------------------------------------------------------\n");
-	printf("Finger  State  Conf  StartT    DeltaT    Xi       Yi       Xf       Yf       Xd       Yd       Dist\n");
-	printf("-----------------------------------------------------------------------------------------------------------------------\n");
+	printf("----------------------------------------------------------------------------------------------------------------------------------------\n");
+	printf("Finger State Conf StartT   DeltaT   Xi       Yi       Xf       Yf       Xd       Yd       Dist     Inst_Vx    Inst_Vy\n");
+	printf("----------------------------------------------------------------------------------------------------------------------------------------\n");
 
 	for (i32 i = 0; i < 5; i++) {
-		printf("F%-2i     %-5d  %-4hhu  %-8hu  %-8hu  %-8u %-8u %-8u %-8u %-8d %-8d %-8u\n", i + 1, (int)delta_data[i].contact_state,
+		printf("F%-5i %-5d %-4hhu %-8hu %-8hu %-8u %-8u %-8u %-8u %-8d %-8d %-8u %-10.2f %-10.2f\n", i + 1, (int)delta_data[i].contact_state,
 			   delta_data[i].confidence, delta_data[i].startTime, delta_data[i].deltaTime, delta_data[i].xi, delta_data[i].yi, delta_data[i].xf,
-			   delta_data[i].yf, delta_data[i].xd, delta_data[i].yd, delta_data[i].distance_traveled);
+			   delta_data[i].yf, delta_data[i].xd, delta_data[i].yd, delta_data[i].distance_traveled, delta_data[i].inst_vx, delta_data[i].inst_vy);
 	}
 	printf("\n");
 }
-
 void getFingerData(HWND window) {
 	Window_state*		 w_state	   = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 	PHIDP_PREPARSED_DATA preparsedData = w_state->input_report_info.ptrPreparsedData;
@@ -137,6 +135,13 @@ u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_
 			ga_pf_delta_data[i].contact_state = (Contact_state)ga_pf_end_data[i].tip_switch;
 
 			FILL_BIT(&finger_state, i, ga_pf_end_data[i].tip_switch);
+
+			// velocity in cm/sec
+			ga_pf_delta_data[i].inst_vx = 3.628 * (ga_pf_end_data[i].x - prev_pos[i].pos.x);
+			ga_pf_delta_data[i].inst_vy = 3.628 * (ga_pf_end_data[i].y - prev_pos[i].pos.y);
+
+			prev_pos[i].pos.x = ga_pf_end_data[i].x;
+			prev_pos[i].pos.y = ga_pf_end_data[i].y;
 
 			ga_pf_delta_data[i].xf				  = ga_pf_end_data[i].x;
 			ga_pf_delta_data[i].yf				  = ga_pf_end_data[i].y;
