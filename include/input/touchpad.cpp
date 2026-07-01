@@ -124,8 +124,11 @@ u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_
 	memset(ga_pf_delta_data, 0, 5 * sizeof(FingerDeltaData));
 	u8 finger_state = 0;
 
+	static vec2f prev_pos[5] = {};
+
 	for (int i = 0; i < 5; i++) {
 		if (ga_pf_start_data[i].confidence == 1) {
+
 			ga_pf_delta_data[i].xi			  = ga_pf_start_data[i].x;
 			ga_pf_delta_data[i].yi			  = ga_pf_start_data[i].y;
 			ga_pf_delta_data[i].confidence	  = ga_pf_start_data[i].confidence;
@@ -142,20 +145,6 @@ u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_
 			ga_pf_delta_data[i].distance_traveled = (u32)hypot(ga_pf_delta_data[i].xd, ga_pf_delta_data[i].yd);
 		}
 	}
-	//
-	//    printf("------------------------------------------------\n");
-	// printf("ga_end_time: %u\n\n", ga_end_time);
-	//
-	// // Parameters 1, 2, and 3: Arrays with 5 elements
-	// for (int i = 0; i < 5; i++) {
-	// 	printf("--- Index [%d] ---\n", i);
-	// 	printf("Start Data | x: %u, y: %u, id: %u, tip: %u, conf: %u\n", ga_pf_start_data[i].x, ga_pf_start_data[i].y, ga_pf_start_data[i].id,
-	// 		   ga_pf_start_data[i].tip_switch, ga_pf_start_data[i].confidence);
-	// 	printf("End Data   | x: %u, y: %u, id: %u, tip: %u, conf: %u\n", ga_pf_end_data[i].x, ga_pf_end_data[i].y, ga_pf_end_data[i].id,
-	// 		   ga_pf_end_data[i].tip_switch, ga_pf_end_data[i].confidence);
-	// 	printf("Start Time | %u\n\n", ga_pf_start_time[i]);
-	// }
-	//
 	return finger_state;
 #undef Short_max
 }
@@ -182,10 +171,10 @@ void getFingerDeltaData(HWND window) {
 	// not using finger_data as the end data because the the filling order is different finger_data : 0 to count-1 : (bottom(0) to up)
 	// but i wanted filling to be done on the basis of finger index :)
 
+	getFingerData(window);
+
 	Finger*		   finger_data = w_state->finger_data;
 	TouchPad_state t_state	   = w_state->t_state;
-
-	getFingerData(window);
 
 	// if(w_state->gesture_start == true && gesture_start_time == 0 )
 	int finger_ID;

@@ -97,6 +97,14 @@ enum Contact_state : u8 {
 	DOWN
 };
 // ===================  structs  ==================
+struct vec2f {
+	union {
+		struct {
+			f32 x, y;
+		} pos, delta;
+	};
+};
+
 struct InputReportInfo {
 	PHIDP_PREPARSED_DATA	   ptrPreparsedData;
 	HIDP_CAPS*				   pCaps;
@@ -142,6 +150,7 @@ struct FingerDeltaData {
 	u32 xf, yf;
 	i32 xd, yd;
 	u32 distance_traveled;
+	f32 inst_vx, inst_vy;
 
 	u8			  confidence;
 	Contact_state contact_state;

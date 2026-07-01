@@ -69,13 +69,15 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, 
 				renderWeirdGradiant(&w_state->back_buffer, 0, 0);
 
 				MSG message;
-				while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
-					if (message.message == WM_QUIT)
-						running = false;
+				while (GetMessage(&message, window, 0, 0)) {
 
 					TranslateMessage(&message);
 					DispatchMessage(&message);
 				}
+
+				if (message.message == WM_QUIT)
+					running = false;
+
 				//! WM_QUIT:
 				// It is NOT sent to your window procedure
 				// It is NOT dispatched via DispatchMessage
