@@ -31,7 +31,6 @@ void printTouchpadData(HWND window) {
 void printFingerDeltaData(HWND window) {
 	Window_state* w_state = (Window_state*)GetWindowLongPtrW(window, GWLP_USERDATA);
 
-	// Assuming w_state->finger_delta is the array of FingerDeltaData
 	FingerDeltaData* delta_data = w_state->finger_delta;
 
 	printf("-----------------------------------------------------------------------------------------------------------------------\n");
@@ -41,10 +40,7 @@ void printFingerDeltaData(HWND window) {
 	for (i32 i = 0; i < 5; i++) {
 		printf("F%-2i     %-5d  %-4hhu  %-8hu  %-8hu  %-8u %-8u %-8u %-8u %-8d %-8d %-8u\n", i + 1, (int)delta_data[i].contact_state,
 			   delta_data[i].confidence, delta_data[i].startTime, delta_data[i].deltaTime, delta_data[i].xi, delta_data[i].yi, delta_data[i].xf,
-			   delta_data[i].yf,
-			   (i32)delta_data[i].xd, // Cast to signed for readable negative direction vectors
-			   (i32)delta_data[i].yd, // Cast to signed for readable negative direction vectors
-			   delta_data[i].distance_traveled);
+			   delta_data[i].yf, delta_data[i].xd, delta_data[i].yd, delta_data[i].distance_traveled);
 	}
 	printf("\n");
 }
@@ -125,8 +121,9 @@ void getFingerData(HWND window) {
 
 u8 fillDeltaStruct(Finger* ga_pf_start_data, Finger* ga_pf_end_data, u16* ga_pf_start_time, u16 ga_end_time, FingerDeltaData* ga_pf_delta_data) {
 #define Short_max 65536
-	memset(ga_pf_delta_data, 0, sizeof(*ga_pf_delta_data));
+	memset(ga_pf_delta_data, 0, 5 * sizeof(FingerDeltaData));
 	u8 finger_state = 0;
+
 	for (int i = 0; i < 5; i++) {
 		if (ga_pf_start_data[i].confidence == 1) {
 			ga_pf_delta_data[i].xi			  = ga_pf_start_data[i].x;
